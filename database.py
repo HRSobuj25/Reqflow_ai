@@ -5,8 +5,9 @@ import json
 from datetime import datetime
 from contextlib import contextmanager
 from dotenv import load_dotenv
-from sqlalchemy import create_engine, Column, Integer, String, Text, Float, DateTime, ForeignKey
+from sqlalchemy import create_engine, Column, Integer, String, Text, Float, DateTime, ForeignKey, Boolean
 from sqlalchemy.orm import declarative_base, sessionmaker, relationship
+import bcrypt
 
 # Load environment variables
 load_dotenv()
@@ -122,6 +123,45 @@ class GeneratedDocument(Base):
     project = relationship("Project", back_populates="documents")
 
 
+class Role(Base):
+    """User roles for access control."""
+    __tablename__ = "Roles"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    role_name = Column(String(50), unique=True, nullable=False)
+
+    users = relationship("User", back_populates="role")
+
+
+class User(Base):
+    """User accounts."""
+    __tablename__ = "Users"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    full_name = Column(String(100), nullable=False)
+    username = Column(String(50), unique=True, nullable=False, index=True)
+    email = Column(String(100), unique=True, nullable=False, index=True)
+    password_hash = Column(String(255), nullable=False)
+    role_id = Column(Integer, ForeignKey("Roles.id"), nullable=False)
+    is_active = Column(Boolean, default=True, nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+
+    role = relationship("Role", back_populates="users")
+    sessions = relationship("UserSession", back_populates="user", cascade="all, delete-orphan")
+
+
+class UserSession(Base):
+    """Log of user sessions."""
+    __tablename__ = "UserSessions"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    user_id = Column(Integer, ForeignKey("Users.id", ondelete="CASCADE"), nullable=False)
+    login_time = Column(DateTime, default=datetime.utcnow, nullable=False)
+    logout_time = Column(DateTime, nullable=True)
+
+    user = relationship("User", back_populates="sessions")
+
+
 # =====================================================================
 # Helper context and CRUD services
 # =====================================================================
@@ -146,10 +186,100 @@ def create_tables():
     try:
         Base.metadata.create_all(bind=engine)
         print("[Database Info] ReqFlowAI database tables initialized successfully.")
+        
+        # Seed initial data (Roles and Admin user)
+        with get_db() as db:
+            roles_to_add = ["Admin", "Business Analyst", "Viewer"]
+            for r_name in roles_to_add:
+                if not db.query(Role).filter(Role.role_name == r_name).first():
+                    db.add(Role(role_name=r_name))
+            db.commit()
+            
+            admin_role = db.query(Role).filter(Role.role_name == "Admin").first()
+            if admin_role and not db.query(User).filter(User.username == "admin").first():
+                # Default admin password: admin123
+                hashed_pw = bcrypt.hashpw("admin123".encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
+                admin_user = User(
+                    full_name="System Administrator",
+                    username="admin",
+                    email="admin@reqflow.ai",
+                    password_hash=hashed_pw,
+                    role_id=admin_role.id
+                )
+                db.add(admin_user)
+                db.commit()
         return True
     except Exception as e:
         print(f"[Database Error] Error initializing database tables: {str(e)}")
         return False
+
+
+def get_user_by_username(username):
+    if not DB_AVAILABLE: return None
+    with get_db() as db:
+        return db.query(User).filter(User.username == username).first()
+
+def get_user_by_id(user_id):
+    if not DB_AVAILABLE: return None
+    with get_db() as db:
+        return db.query(User).filter(User.id == user_id).first()
+
+def get_role_by_id(role_id):
+    if not DB_AVAILABLE: return None
+    with get_db() as db:
+        return db.query(Role).filter(Role.id == role_id).first()
+
+def get_role_by_name(role_name):
+    if not DB_AVAILABLE: return None
+    with get_db() as db:
+        return db.query(Role).filter(Role.role_name == role_name).first()
+
+def get_all_roles():
+    if not DB_AVAILABLE: return []
+    with get_db() as db:
+        return db.query(Role).all()
+
+def create_user(full_name, username, email, password_hash, role_id):
+    if not DB_AVAILABLE: return False, "Database not available"
+    with get_db() as db:
+        try:
+            new_user = User(
+                full_name=full_name,
+                username=username,
+                email=email,
+                password_hash=password_hash,
+                role_id=role_id
+            )
+            db.add(new_user)
+            db.commit()
+            return True, "User created successfully"
+        except Exception as e:
+            db.rollback()
+            return False, str(e)
+
+def log_session_login(user_id):
+    if not DB_AVAILABLE: return None
+    with get_db() as db:
+        try:
+            session = UserSession(user_id=user_id)
+            db.add(session)
+            db.commit()
+            db.refresh(session)
+            return session.id
+        except:
+            db.rollback()
+            return None
+
+def log_session_logout(session_id):
+    if not DB_AVAILABLE: return
+    with get_db() as db:
+        try:
+            session = db.query(UserSession).filter(UserSession.id == session_id).first()
+            if session:
+                session.logout_time = datetime.utcnow()
+                db.commit()
+        except:
+            db.rollback()
 
 
 def save_project(name, industry=None, scope_details=None, features=None, creativity_level=None):

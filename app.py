@@ -13,6 +13,7 @@ import pdf_export
 import excel_export
 import markdown_export
 import export_manager
+import auth
 import importlib
 importlib.reload(gemini_service)
 importlib.reload(database)
@@ -21,6 +22,7 @@ importlib.reload(pdf_export)
 importlib.reload(excel_export)
 importlib.reload(markdown_export)
 importlib.reload(export_manager)
+importlib.reload(auth)
 
 # Try to initialize database tables on startup
 if database.DB_AVAILABLE:
@@ -34,6 +36,12 @@ st.set_page_config(
     layout="wide",
     initial_sidebar_state="expanded",
 )
+
+# Authentication Routing
+auth.init_session_state()
+if not st.session_state.user:
+    auth.render_login_page()
+    st.stop()
 
 # 2. Theme State Management
 if "theme" not in st.session_state:
@@ -172,11 +180,9 @@ st.markdown(f"""
         overflow: hidden !important;
     }}
 
-
-
     /* Global reset */
-    *, html, body, [data-testid="stAppViewContainer"], [data-testid="stApp"], .main, .block-container, section[data-testid="stMain"] {{
-        font-family: 'Cambria', Georgia, serif !important;
+    html, body, [data-testid="stAppViewContainer"], [data-testid="stApp"], .main, .block-container, section[data-testid="stMain"] {{
+        font-family: 'Outfit', sans-serif !important;
     }}
     html, body, [data-testid="stAppViewContainer"], [data-testid="stApp"], .main, .block-container, section[data-testid="stMain"] {{
         background-color: {bg_color} !important;
@@ -2929,7 +2935,7 @@ with st.sidebar:
 
     st.markdown("""
     <div class="sidebar-logo">
-        <div class="logo-badge">R</div>
+        <div class="logo-badge">⚡</div>
         <div class="logo-text">ReqFlow <span class="text-gradient">AI</span></div>
     </div>
     """, unsafe_allow_html=True)
@@ -2937,7 +2943,13 @@ with st.sidebar:
     st.markdown('<div class="sidebar-heading">Navigation</div>', unsafe_allow_html=True)
 
     # Active page indicator pill
-    _active_label = "Dashboard" if st.session_state.page == "dashboard" else "Project History"
+    if st.session_state.page == "dashboard":
+        _active_label = "Dashboard"
+    elif st.session_state.page == "history":
+        _active_label = "Project History"
+    else:
+        _active_label = "User Management"
+
     st.markdown(f"""
     <div style="background:rgba(139,92,246,0.08);border:1px solid rgba(139,92,246,0.2);
         border-radius:8px;padding:0.4rem 0.75rem;margin-bottom:0.6rem;
@@ -2953,6 +2965,11 @@ with st.sidebar:
     if st.button("📚 Project History", use_container_width=True, key="nav_btn_history"):
         st.session_state.page = "history"
         st.rerun()
+        
+    if auth.has_permission(["Admin"]):
+        if st.button("👥 User Management", use_container_width=True, key="nav_btn_users"):
+            st.session_state.page = "user_management"
+            st.rerun()
 
     # ── Workspace section: only shown on Dashboard page ────────────────────────
     if st.session_state.page == "dashboard":
@@ -3035,7 +3052,31 @@ with st.sidebar:
     </div>
     """, unsafe_allow_html=True)
 
+    # Place user profile and sign out at the very bottom
+    auth.render_user_profile()
+
 # ─── Page Router ──────────────────────────────────────────────────────────────
+if st.session_state.page == "user_management":
+    if auth.has_permission(["Admin"]):
+        st.markdown("""
+        <div style="margin-bottom: 2rem;">
+            <h1 style="margin: 0; font-size: 2.2rem; font-weight: 800; tracking: -0.04em;">
+                User <span class="text-gradient">Management</span>
+            </h1>
+            <p style="margin: 0.2rem 0 1.5rem 0; font-size: 0.95rem; color: #a5b4fc; font-weight: 500;">
+                Add new team members and manage role-based access.
+            </p>
+        </div>
+        """, unsafe_allow_html=True)
+        
+        # Center the registration page for better look on wide screens
+        col1, col2, col3 = st.columns([1, 2, 1])
+        with col2:
+            auth.render_registration_page()
+    else:
+        st.error("You do not have permission to view this page.")
+    st.stop()
+
 # History page renders completely independently; st.stop() prevents the
 # dashboard code below from executing when on the history page.
 if st.session_state.page == "history":
@@ -3159,7 +3200,11 @@ with st.container():
             help="High values produce longer descriptions, low values generate terse compliance summaries."
         )
         
-        generate_btn = st.button("✨ Generate ERP Requirements", use_container_width=True)
+        generate_btn = False
+        if auth.has_permission(["Admin", "Business Analyst"]):
+            generate_btn = st.button("✨ Generate ERP Requirements", use_container_width=True)
+        else:
+            st.info("Your role does not have permission to generate new requirements.")
 
 # 8. Requirement Output Hub (full-width, below form)
 with st.container():
@@ -3389,15 +3434,18 @@ with st.container():
                         project_data=active_project_data
                     )
                     
-                    st.download_button(
-                        label=f"💾 Download {export_format}",
-                        data=payload,
-                        file_name=filename,
-                        mime=mime,
-                        use_container_width=True,
-                        key="btn_dl_unified",
-                        on_click=log_download_callback,
-                        args=(st.session_state.current_project, export_doc_type, export_format.lower(), str(payload)[:1000])
-                    )
+                    if auth.has_permission(["Admin", "Business Analyst"]):
+                        st.download_button(
+                            label=f"💾 Download {export_format}",
+                            data=payload,
+                            file_name=filename,
+                            mime=mime,
+                            use_container_width=True,
+                            key="btn_dl_unified",
+                            on_click=log_download_callback,
+                            args=(st.session_state.current_project, export_doc_type, export_format.lower(), str(payload)[:1000])
+                        )
+                    else:
+                        st.info("Your role does not have permission to export documents.")
                 except Exception as e:
                     st.error(f"Export Compilation Error: {str(e)}")
