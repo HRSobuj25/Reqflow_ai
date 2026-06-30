@@ -43,12 +43,24 @@ def generate_erp_requirements(project_name: str, industry: str, features: list, 
         creativity_level=creativity_level
     )
     
-    # Configure generation parameters
-    # Request JSON output structure
     generation_config = genai.types.GenerationConfig(
         temperature=float(creativity_level),
         max_output_tokens=8192,
-        response_mime_type="application/json"
+        response_mime_type="application/json",
+        response_schema={
+            "type": "OBJECT",
+            "properties": {
+                "brd": {"type": "STRING"},
+                "srs": {"type": "STRING"},
+                "use_cases": {"type": "STRING"},
+                "user_stories": {"type": "STRING"},
+                "database_design": {"type": "STRING"},
+                "kpis": {"type": "STRING"},
+                "workflow": {"type": "STRING"},
+                "reports": {"type": "STRING"},
+            },
+            "required": ["brd", "srs", "use_cases", "user_stories", "database_design", "kpis", "workflow", "reports"],
+        }
     )
     
     try:

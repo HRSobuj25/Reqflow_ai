@@ -8,9 +8,19 @@ from datetime import datetime
 import plotly.express as px
 import gemini_service
 import database
+import docx_export
+import pdf_export
+import excel_export
+import markdown_export
+import export_manager
 import importlib
 importlib.reload(gemini_service)
 importlib.reload(database)
+importlib.reload(docx_export)
+importlib.reload(pdf_export)
+importlib.reload(excel_export)
+importlib.reload(markdown_export)
+importlib.reload(export_manager)
 
 # Try to initialize database tables on startup
 if database.DB_AVAILABLE:
@@ -1964,129 +1974,87 @@ with col_display:
         
         with tab_brd:
             st.markdown(active_project_data["brd"])
-            st.download_button(
-                label="📥 Export BRD to Markdown",
-                data=active_project_data["brd"],
-                file_name=f"{st.session_state.current_project.replace(' ', '_')}_BRD.md",
-                mime="text/markdown",
-                key="btn_dl_brd",
-                on_click=log_download_callback,
-                args=(st.session_state.current_project, "BRD", "md", active_project_data["brd"])
-            )
             
         with tab_srs:
             st.markdown(active_project_data["srs"])
-            st.download_button(
-                label="📥 Export SRS to Markdown",
-                data=active_project_data["srs"],
-                file_name=f"{st.session_state.current_project.replace(' ', '_')}_SRS.md",
-                mime="text/markdown",
-                key="btn_dl_srs",
-                on_click=log_download_callback,
-                args=(st.session_state.current_project, "SRS", "md", active_project_data["srs"])
-            )
             
         with tab_use_cases:
             st.markdown(active_project_data["use_cases"])
-            st.download_button(
-                label="📥 Export Use Cases to Markdown",
-                data=active_project_data["use_cases"],
-                file_name=f"{st.session_state.current_project.replace(' ', '_')}_UseCases.md",
-                mime="text/markdown",
-                key="btn_dl_uc",
-                on_click=log_download_callback,
-                args=(st.session_state.current_project, "Use Cases", "md", active_project_data["use_cases"])
-            )
             
         with tab_user_stories:
             st.markdown(active_project_data["user_stories"])
-            st.download_button(
-                label="📥 Export User Stories to Markdown",
-                data=active_project_data["user_stories"],
-                file_name=f"{st.session_state.current_project.replace(' ', '_')}_UserStories.md",
-                mime="text/markdown",
-                key="btn_dl_us",
-                on_click=log_download_callback,
-                args=(st.session_state.current_project, "User Stories", "md", active_project_data["user_stories"])
-            )
             
         with tab_db:
             st.markdown(active_project_data["db_suggestions"])
-            st.download_button(
-                label="📥 Export Database Suggestions to Markdown",
-                data=active_project_data["db_suggestions"],
-                file_name=f"{st.session_state.current_project.replace(' ', '_')}_Database.md",
-                mime="text/markdown",
-                key="btn_dl_db",
-                on_click=log_download_callback,
-                args=(st.session_state.current_project, "Database Suggestions", "md", active_project_data["db_suggestions"])
-            )
             
         with tab_kpi:
             st.markdown(active_project_data.get("kpis", "*No KPIs generated.*"))
-            st.download_button(
-                label="📥 Export KPIs to Markdown",
-                data=active_project_data.get("kpis", ""),
-                file_name=f"{st.session_state.current_project.replace(' ', '_')}_KPIs.md",
-                mime="text/markdown",
-                key="btn_dl_kpis",
-                on_click=log_download_callback,
-                args=(st.session_state.current_project, "KPIs", "md", active_project_data.get("kpis", ""))
-            )
             
         with tab_wf:
             st.markdown(active_project_data.get("workflow", "*No workflow generated.*"))
-            st.download_button(
-                label="📥 Export Workflow to Markdown",
-                data=active_project_data.get("workflow", ""),
-                file_name=f"{st.session_state.current_project.replace(' ', '_')}_Workflow.md",
-                mime="text/markdown",
-                key="btn_dl_wf",
-                on_click=log_download_callback,
-                args=(st.session_state.current_project, "Workflow", "md", active_project_data.get("workflow", ""))
-            )
             
         with tab_rep:
             st.markdown(active_project_data.get("reports", "*No reports generated.*"))
-            st.download_button(
-                label="📥 Export Reports Suggestions to Markdown",
-                data=active_project_data.get("reports", ""),
-                file_name=f"{st.session_state.current_project.replace(' ', '_')}_Reports.md",
-                mime="text/markdown",
-                key="btn_dl_reports",
-                on_click=log_download_callback,
-                args=(st.session_state.current_project, "Reports Suggestions", "md", active_project_data.get("reports", ""))
-            )
             
         # Overall Export Suite Action
         st.markdown("<hr style='margin: 1.5rem 0; border: 0; border-top: 1px solid var(--border);'>", unsafe_allow_html=True)
         
-        # Combine entire project into a single Markdown document for the complete download suite
-        combined_markdown = f"# ReqFlow AI Full Specification Suite: {st.session_state.current_project}\n"
-        combined_markdown += f"Industry: {active_project_data['industry']}\n"
-        combined_markdown += f"Generated: {active_project_data['timestamp']}\n\n"
-        combined_markdown += "---\n\n"
-        
-        combined_markdown += f"# Business Requirements Document (BRD)\n\n{active_project_data['brd']}\n\n---\n\n"
-        combined_markdown += f"# Software Requirements Specification (SRS)\n\n{active_project_data['srs']}\n\n---\n\n"
-        combined_markdown += f"# Use Case Specifications\n\n{active_project_data['use_cases']}\n\n---\n\n"
-        combined_markdown += f"# User Stories & Acceptance Criteria\n\n{active_project_data['user_stories']}\n\n---\n\n"
-        combined_markdown += f"# Database Design Suggestions\n\n{active_project_data['db_suggestions']}\n\n---\n\n"
-        
-        if "kpis" in active_project_data:
-            combined_markdown += f"# KPI Suggestions\n\n{active_project_data['kpis']}\n\n---\n\n"
-        if "workflow" in active_project_data:
-            combined_markdown += f"# Workflow Suggestions\n\n{active_project_data['workflow']}\n\n---\n\n"
-        if "reports" in active_project_data:
-            combined_markdown += f"# Reports Suggestions\n\n{active_project_data['reports']}\n"
-        
-        st.download_button(
-            label="📥 Export Complete Requirement Suite (Markdown)",
-            data=combined_markdown,
-            file_name=f"{st.session_state.current_project.replace(' ', '_')}_Complete_Suite.md",
-            mime="text/markdown",
-            use_container_width=True,
-            key="btn_dl_suite",
-            on_click=log_download_callback,
-            args=(st.session_state.current_project, "Complete Suite", "md", combined_markdown)
-        )
+        # Unified export control center
+        col_export_label, col_export_btn = st.columns([2, 1])
+        with col_export_label:
+            st.markdown(f"""
+            <div style="display:flex; flex-direction:column; justify-content:center; height:100%;">
+                <h4 style="margin:0; font-size:1.05rem; font-weight:700; color:{text_color};">📂 Export Requirements Suite</h4>
+                <p style="margin:0; font-size:0.8rem; color:{text_dim};">Download single modules or the complete suite in PDF, Word, Excel, or Markdown format.</p>
+            </div>
+            """, unsafe_allow_html=True)
+            
+        with col_export_btn:
+            with st.popover("📥 Export Documents", use_container_width=True):
+                st.markdown("### 📥 Document Export Control Center")
+                st.write("Configure your document export preferences:")
+                
+                export_doc_type = st.selectbox(
+                    "Document Selection",
+                    options=[
+                        "Full Requirement Suite",
+                        "BRD",
+                        "SRS",
+                        "Use Cases",
+                        "User Stories",
+                        "Database Design",
+                        "KPI",
+                        "Workflow",
+                        "Reports"
+                    ],
+                    key="export_doc_type_select"
+                )
+                
+                export_format = st.selectbox(
+                    "Select Format",
+                    options=["PDF", "DOCX", "Excel", "Markdown"],
+                    key="export_format_select"
+                )
+                
+                try:
+                    payload, filename, mime = export_manager.get_export_data(
+                        project_name=st.session_state.current_project,
+                        industry=active_project_data["industry"],
+                        timestamp=active_project_data["timestamp"],
+                        doc_type=export_doc_type,
+                        format_type=export_format,
+                        project_data=active_project_data
+                    )
+                    
+                    st.download_button(
+                        label=f"💾 Download {export_format}",
+                        data=payload,
+                        file_name=filename,
+                        mime=mime,
+                        use_container_width=True,
+                        key="btn_dl_unified",
+                        on_click=log_download_callback,
+                        args=(st.session_state.current_project, export_doc_type, export_format.lower(), str(payload)[:1000])
+                    )
+                except Exception as e:
+                    st.error(f"Export Compilation Error: {str(e)}")
