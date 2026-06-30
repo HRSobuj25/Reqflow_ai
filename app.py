@@ -175,10 +175,12 @@ st.markdown(f"""
 
 
     /* Global reset */
+    *, html, body, [data-testid="stAppViewContainer"], [data-testid="stApp"], .main, .block-container, section[data-testid="stMain"] {{
+        font-family: 'Cambria', Georgia, serif !important;
+    }}
     html, body, [data-testid="stAppViewContainer"], [data-testid="stApp"], .main, .block-container, section[data-testid="stMain"] {{
         background-color: {bg_color} !important;
         color: {text_color} !important;
-        font-family: 'Cambria', Georgia, serif !important;
     }}
 
     /* Main Container Padding */
@@ -1313,10 +1315,1333 @@ CREATE TABLE gradebook (
 );
 ```
         """
-    }
-}
+    },
 
-# 5. Core Layout Architecture
+    "Manufacturing & Production": {
+        "features": ["Production Planning (MRP)", "Machine Downtime Tracker", "Quality Control (QC)", "Bill of Materials (BOM)", "Shift & Labor Scheduling", "Supplier & Raw Material Mgmt"],
+        "default_scope": "Build a Manufacturing ERP covering production scheduling, machine telemetry, QC inspection workflows, Bill of Materials management, and supplier procurement integration.",
+        "kpi_metrics": {"total_requirements": "30 Detailed Items", "avg_complexity": "High (M3-M5)", "compliance_grade": "ISO 9001 / ISO 14001 Ready"},
+        "brd": """
+# Business Requirements Document (BRD)
+## 1. Project Overview & Context
+This BRD defines manufacturing operations requirements for **{project_name}**. The system will handle production line orchestration, quality inspection, shift management, and raw material procurement.
+
+### 1.1 Business Goals & Success Metrics
+- **Reduce Downtime:** Achieve <2% unplanned machine downtime by integrating IoT-based predictive maintenance alerts.
+- **Improve QC Pass Rate:** Target ≥98.5% first-pass quality yield across all production lines.
+- **Streamline Procurement:** Automate re-order triggers when raw material stock falls below buffer thresholds.
+
+### 1.2 Target Stakeholders
+- **Plant Manager:** Monitors OEE (Overall Equipment Effectiveness), manages shift rosters.
+- **Quality Inspector:** Records defect logs, signs off inspection checklists.
+- **Procurement Officer:** Manages supplier POs and raw material inventory.
+
+## 2. Core Workflow
+```mermaid
+graph TD
+    A[Production Order Created] --> B[MRP Generates BOM & Work Orders]
+    B --> C[Raw Materials Reserved from Inventory]
+    C --> D[Production Line Execution]
+    D --> E{{QC Inspection}}
+    E -- Pass --> F[Finished Goods Warehouse]
+    E -- Fail --> G[Rework or Scrap Log]
+```
+
+## 3. Scope of Requirements
+- **MRP Engine:** Plan material requirements from sales orders.
+- **Machine Telemetry:** IoT sensor feeds for predictive maintenance.
+- **QC Inspection Module:** Digital checklists and defect tracking.
+
+### 3.1 Custom Scope Context
+*{scope_details}*
+        """,
+        "srs": """
+# Software Requirements Specification (SRS)
+## 1. Functional Requirements
+
+### 1.1 Production Planning
+- **Req-MP-1.1.1 (MRP Run):** The system must calculate material requirements nightly from open sales orders and current stock levels.
+- **Req-MP-1.1.2 (Work Order Generation):** Approved production plans must auto-generate work orders assigned to specific production cells.
+
+### 1.2 Quality Control
+- **Req-MP-1.2.1 (Digital Inspection):** QC inspectors must record defect codes using a digital checklist tied to each batch.
+- **Req-MP-1.2.2 (Defect Escalation):** Batches with defect rate >2% must automatically escalate to the Quality Manager dashboard.
+
+## 2. Non-Functional Requirements
+### 2.1 Reliability
+- **99.5% uptime** for production scheduling APIs during shift hours.
+- **ISO 9001 audit trail** — all QC events must be logged with operator ID, timestamp, and defect classification.
+        """,
+        "use_cases": """
+# Use Case Specifications
+
+| Use Case ID | Use Case Name | Actor | Preconditions | Postconditions |
+| :--- | :--- | :--- | :--- | :--- |
+| **UC-MP-101** | Create Production Order | Plant Manager | Sales order approved | Work orders dispatched to production cells |
+| **UC-MP-102** | Log QC Inspection Result | Quality Inspector | Batch production complete | Pass/Fail status recorded, defect log updated |
+| **UC-MP-103** | Trigger Reorder Alert | Procurement System | Stock < reorder threshold | Purchase order auto-generated to supplier |
+
+### Use Case Flow: UC-MP-101 (Create Production Order)
+1. Plant Manager reviews approved sales orders in the system.
+2. System runs MRP calculation to determine material shortages.
+3. Production Order is created with target quantity and delivery date.
+4. Work orders are auto-assigned to available production cells.
+5. Raw materials are reserved in inventory management module.
+        """,
+        "user_stories": """
+# User Stories & Acceptance Criteria
+
+### US-MP-201: Predictive Maintenance Alert
+**As a** Plant Engineer
+**I want to** receive early alerts when machine vibration or temperature exceeds safe thresholds
+**So that** I can schedule preventive maintenance before a breakdown occurs.
+
+*Acceptance Criteria:*
+- **AC1:** IoT sensor readings are ingested every 30 seconds.
+- **AC2:** Alert triggers when any reading exceeds the defined threshold for 3 consecutive readings.
+- **AC3:** Alert is pushed to the engineer's mobile dashboard within 60 seconds.
+
+---
+
+### US-MP-202: Digital QC Checklist
+**As a** Quality Inspector
+**I want to** complete a digital inspection form on my tablet at the production line
+**So that** QC records are stored instantly without paper-based lag.
+
+*Acceptance Criteria:*
+- **AC1:** Checklist is pre-loaded based on the product type and batch number.
+- **AC2:** Inspector can flag defects with photo attachment.
+- **AC3:** Completed form syncs to the central QC database within 10 seconds.
+        """,
+        "db_suggestions": """
+# Database Design Suggestions
+
+Suggested stack: **PostgreSQL** for relational manufacturing records; **TimescaleDB** extension for IoT time-series telemetry.
+
+## Entity Relationship Outline
+```mermaid
+erDiagram
+    PRODUCTION_ORDERS ||--o{ WORK_ORDERS : spawns
+    WORK_ORDERS ||--o{ QC_INSPECTIONS : inspected_by
+    MATERIALS ||--o{ PRODUCTION_ORDERS : consumed_in
+```
+
+## SQL DDL Scripts
+```sql
+CREATE TABLE production_orders (
+    order_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    product_code VARCHAR(50) NOT NULL,
+    target_quantity INT NOT NULL,
+    planned_start DATE NOT NULL,
+    planned_end DATE NOT NULL,
+    status VARCHAR(20) DEFAULT 'open'
+);
+
+CREATE TABLE qc_inspections (
+    inspection_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    work_order_id UUID REFERENCES production_orders(order_id),
+    inspector_id VARCHAR(50) NOT NULL,
+    defect_count INT DEFAULT 0,
+    result VARCHAR(10) NOT NULL,  -- 'pass' / 'fail'
+    inspected_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+```
+        """
+    },
+    "Retail & POS": {
+        "features": ["Point of Sale (POS) Terminal", "Loyalty & Rewards Program", "Multi-Store Inventory", "Customer CRM", "Pricing & Promotions Engine", "Sales Analytics Dashboard"],
+        "default_scope": "Build a Retail ERP with a POS terminal integration, customer loyalty tracking, multi-store inventory management, and promotional pricing rules engine.",
+        "kpi_metrics": {"total_requirements": "27 Detailed Items", "avg_complexity": "Medium (M2-M4)", "compliance_grade": "PCI-DSS / GDPR Ready"},
+        "brd": """
+# Business Requirements Document (BRD)
+## 1. Project Overview & Context
+This BRD outlines the retail management requirements for **{project_name}**. The platform integrates POS terminals, CRM data, loyalty rewards, and inventory synchronization across multiple store locations.
+
+### 1.1 Business Goals
+- **Accelerate Checkout Speed:** Reduce average transaction time at POS to under 45 seconds.
+- **Boost Customer Retention:** Increase repeat purchases through personalized loyalty rewards.
+- **Unify Multi-Store Inventory:** Synchronize stock levels across all branches in real time.
+
+### 1.2 Target Stakeholders
+- **Store Cashier:** Processes transactions, applies discounts, manages returns.
+- **Store Manager:** Monitors sales targets, manages shift operations.
+- **Marketing Manager:** Configures promotions, tracks loyalty redemption rates.
+
+## 2. Core Workflow
+```mermaid
+graph TD
+    A[Customer Arrives at POS] --> B[Scan Items & Apply Loyalty Card]
+    B --> C{{Promo Code Check}}
+    C -- Eligible --> D[Apply Discount]
+    C -- Not Eligible --> E[Full Price Checkout]
+    D --> F[Process Payment]
+    E --> F
+    F --> G[Update Inventory & Award Loyalty Points]
+```
+
+## 3. Scope of Requirements
+- **POS Terminal:** Barcode scanning, payment processing, receipt printing.
+- **Loyalty Engine:** Points accumulation, tier management, redemption rules.
+- **Inventory Sync:** Real-time stock deduction across all store locations.
+
+### 3.1 Custom Scope Context
+*{scope_details}*
+        """,
+        "srs": """
+# Software Requirements Specification (SRS)
+## 1. Functional Requirements
+
+### 1.1 POS Terminal
+- **Req-RT-1.1.1 (Barcode Scan):** POS must process barcode/QR scans and retrieve product pricing within 200ms.
+- **Req-RT-1.1.2 (Offline Mode):** POS terminals must cache up to 500 product SKUs locally and queue transactions when network is unavailable.
+
+### 1.2 Loyalty Program
+- **Req-RT-1.2.1 (Points Accrual):** 1 loyalty point is awarded for every $1 spent, rounded down.
+- **Req-RT-1.2.2 (Tier Upgrade):** Customer tier is recalculated monthly based on trailing 90-day spend.
+
+## 2. Non-Functional Requirements
+### 2.1 Security
+- All POS payment data must be tokenized — no raw card numbers stored.
+- PCI-DSS Level 1 compliance required for payment processing modules.
+        """,
+        "use_cases": """
+# Use Case Specifications
+
+| Use Case ID | Use Case Name | Actor | Preconditions | Postconditions |
+| :--- | :--- | :--- | :--- | :--- |
+| **UC-RT-101** | Process POS Sale | Cashier | Items scanned, payment method selected | Receipt generated, inventory updated, points awarded |
+| **UC-RT-102** | Redeem Loyalty Points | Customer | Sufficient points balance | Discount applied, points deducted |
+| **UC-RT-103** | Run End-of-Day Report | Store Manager | Business day closed | Daily sales summary report generated |
+
+### Use Case Flow: UC-RT-101 (Process POS Sale)
+1. Cashier scans each product barcode at the POS terminal.
+2. System retrieves product price and checks active promotions.
+3. Customer presents loyalty card — system retrieves points balance.
+4. Payment is processed via card/cash/QR.
+5. Receipt is printed, inventory decremented, loyalty points awarded.
+        """,
+        "user_stories": """
+# User Stories & Acceptance Criteria
+
+### US-RT-201: Offline POS Resilience
+**As a** Store Cashier
+**I want to** continue processing sales when the internet is down
+**So that** checkout operations don't halt during network outages.
+
+*Acceptance Criteria:*
+- **AC1:** POS loads product catalog from local cache within 3 seconds of startup.
+- **AC2:** Offline transactions are queued and synced automatically when connectivity resumes.
+- **AC3:** System alerts cashier with a banner when operating in offline mode.
+
+---
+
+### US-RT-202: Targeted Loyalty Promotion
+**As a** Marketing Manager
+**I want to** send personalized bonus point offers to high-value customers
+**So that** I can increase purchase frequency among our top 20% spenders.
+
+*Acceptance Criteria:*
+- **AC1:** System identifies top 20% customers by trailing 90-day spend.
+- **AC2:** Bonus offer is delivered via SMS and in-app notification.
+- **AC3:** Offer tracks redemption rate and expires automatically after 14 days.
+        """,
+        "db_suggestions": """
+# Database Design Suggestions
+
+Suggested stack: **MySQL / PostgreSQL** for transactional retail data; **Redis** for real-time inventory cache at POS.
+
+## Entity Relationship Outline
+```mermaid
+erDiagram
+    CUSTOMERS ||--o{ TRANSACTIONS : makes
+    TRANSACTIONS ||--o{ TRANSACTION_ITEMS : contains
+    PRODUCTS ||--o{ TRANSACTION_ITEMS : included_in
+    CUSTOMERS ||--|| LOYALTY_ACCOUNTS : has
+```
+
+## SQL DDL Scripts
+```sql
+CREATE TABLE customers (
+    customer_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    full_name VARCHAR(100) NOT NULL,
+    email VARCHAR(150) UNIQUE NOT NULL,
+    phone VARCHAR(20),
+    loyalty_tier VARCHAR(20) DEFAULT 'Bronze',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE transactions (
+    transaction_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    customer_id UUID REFERENCES customers(customer_id),
+    store_id INT NOT NULL,
+    total_amount NUMERIC(10,2) NOT NULL,
+    points_earned INT DEFAULT 0,
+    payment_method VARCHAR(20),
+    transacted_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+```
+        """
+    },
+    "Banking & Insurance": {
+        "features": ["Core Banking Ledger", "Loan Origination System", "Policy Management", "Claims Processing", "KYC / AML Compliance", "Risk Scoring Engine"],
+        "default_scope": "Design a Banking & Insurance platform covering core ledger management, loan origination workflows, policy lifecycle management, and automated claims adjudication.",
+        "kpi_metrics": {"total_requirements": "36 Detailed Items", "avg_complexity": "Very High (M4-M6)", "compliance_grade": "Basel III / IFRS 17 / AML Ready"},
+        "brd": """
+# Business Requirements Document (BRD)
+## 1. Project Overview & Context
+This BRD defines core requirements for **{project_name}**, a banking and insurance management platform. It covers core banking, loan products, insurance policy lifecycle, claims, and regulatory compliance modules.
+
+### 1.1 Business Goals
+- **Accelerate Loan Decisions:** Reduce loan origination time from 5 days to under 24 hours via automated credit scoring.
+- **Streamline Claims:** Achieve 80% of simple claims adjudicated within 48 hours without manual review.
+- **Ensure Regulatory Compliance:** Maintain full AML/KYC logs and Basel III capital adequacy reporting.
+
+### 1.2 Target Stakeholders
+- **Loan Officer:** Reviews applications, triggers credit checks, issues approval letters.
+- **Claims Adjudicator:** Reviews filed claims, requests documentation, approves payouts.
+- **Compliance Officer:** Monitors transaction flags, files SAR reports.
+
+## 2. Core Workflow
+```mermaid
+graph TD
+    A[Loan Application Submitted] --> B[KYC & AML Verification]
+    B --> C[Automated Credit Scoring]
+    C -- Score >= 650 --> D[Conditional Approval]
+    C -- Score < 650 --> E[Manual Review Queue]
+    D --> F[Loan Agreement Signed]
+    F --> G[Funds Disbursed]
+```
+
+## 3. Scope of Requirements
+- **Core Banking:** Account management, interest calculation, transaction ledger.
+- **Loan Origination:** Application intake, document verification, disbursement.
+- **Claims Processing:** First Notice of Loss (FNOL), adjudication, payout.
+
+### 3.1 Custom Scope Context
+*{scope_details}*
+        """,
+        "srs": """
+# Software Requirements Specification (SRS)
+## 1. Functional Requirements
+
+### 1.1 Loan Origination
+- **Req-BI-1.1.1 (Auto Credit Score):** System must query credit bureau APIs and calculate a proprietary composite score within 30 seconds.
+- **Req-BI-1.1.2 (Document Verification):** Identity documents must be verified via OCR + facial recognition before approval proceeds.
+
+### 1.2 Claims Processing
+- **Req-BI-1.2.1 (FNOL Capture):** Claimant can submit FNOL via web portal or mobile app with photo attachments.
+- **Req-BI-1.2.2 (Auto Adjudication):** Claims under $500 with matching policy coverage must be auto-approved without manual review.
+
+## 2. Non-Functional Requirements
+### 2.1 Regulatory Compliance
+- All customer PII must be encrypted at rest (AES-256) and in transit (TLS 1.3).
+- Full audit trail for every ledger entry to satisfy Basel III requirements.
+        """,
+        "use_cases": """
+# Use Case Specifications
+
+| Use Case ID | Use Case Name | Actor | Preconditions | Postconditions |
+| :--- | :--- | :--- | :--- | :--- |
+| **UC-BI-101** | Submit Loan Application | Applicant | Account created, KYC verified | Application ID issued, credit check triggered |
+| **UC-BI-102** | Adjudicate Insurance Claim | Claims Adjudicator | FNOL filed, documents uploaded | Claim approved/rejected, payout initiated |
+| **UC-BI-103** | Flag AML Suspicious Transaction | AML Engine | Transaction above reporting threshold | SAR report queued for Compliance Officer |
+
+### Use Case Flow: UC-BI-101 (Submit Loan Application)
+1. Applicant completes loan application form specifying amount, term, and purpose.
+2. System triggers KYC verification against government ID database.
+3. Credit bureau API is queried — composite score calculated.
+4. If score ≥ threshold, conditional approval letter is generated.
+5. Applicant signs digital agreement; disbursement is scheduled.
+        """,
+        "user_stories": """
+# User Stories & Acceptance Criteria
+
+### US-BI-201: Automated Credit Decision
+**As a** Loan Applicant
+**I want to** receive a preliminary loan decision within minutes of submitting my application
+**So that** I don't have to wait days to plan my finances.
+
+*Acceptance Criteria:*
+- **AC1:** Credit score returned from bureau API within 30 seconds.
+- **AC2:** Decision email sent within 5 minutes of application submission.
+- **AC3:** If manual review required, applicant is notified with expected turnaround time.
+
+---
+
+### US-BI-202: Instant Small Claims Settlement
+**As a** Policyholder
+**I want to** receive an instant payout for minor claims under $500
+**So that** I don't have to follow up multiple times for small reimbursements.
+
+*Acceptance Criteria:*
+- **AC1:** Claim amount and policy coverage are cross-checked automatically.
+- **AC2:** Auto-approved claims trigger bank transfer within 24 hours.
+- **AC3:** Claimant receives SMS and email confirmation upon approval.
+        """,
+        "db_suggestions": """
+# Database Design Suggestions
+
+Suggested stack: **Oracle DB / PostgreSQL** for ACID-compliant banking ledgers; **Apache Kafka** for real-time AML event streaming.
+
+## Entity Relationship Outline
+```mermaid
+erDiagram
+    CUSTOMERS ||--o{ ACCOUNTS : owns
+    ACCOUNTS ||--o{ LEDGER_ENTRIES : records
+    CUSTOMERS ||--o{ LOAN_APPLICATIONS : submits
+    CUSTOMERS ||--o{ POLICIES : holds
+    POLICIES ||--o{ CLAIMS : generates
+```
+
+## SQL DDL Scripts
+```sql
+CREATE TABLE loan_applications (
+    application_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    customer_id UUID NOT NULL,
+    loan_amount NUMERIC(14,2) NOT NULL,
+    term_months INT NOT NULL,
+    credit_score INT,
+    status VARCHAR(20) DEFAULT 'pending',
+    applied_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE claims (
+    claim_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    policy_id UUID NOT NULL,
+    claim_amount NUMERIC(12,2) NOT NULL,
+    description TEXT,
+    status VARCHAR(20) DEFAULT 'submitted',
+    adjudicated_at TIMESTAMP
+);
+```
+        """
+    },
+    "HR & Payroll": {
+        "features": ["Employee Records (HRIS)", "Payroll Processing Engine", "Leave & Attendance Management", "Performance Review Cycles", "Recruitment & Onboarding", "Benefits & Compensation"],
+        "default_scope": "Design an HR & Payroll ERP managing the full employee lifecycle — from recruitment and onboarding through payroll calculation, leave tracking, and performance management.",
+        "kpi_metrics": {"total_requirements": "29 Detailed Items", "avg_complexity": "Medium (M2-M4)", "compliance_grade": "GDPR / FLSA / Labor Law Ready"},
+        "brd": """
+# Business Requirements Document (BRD)
+## 1. Project Overview & Context
+This BRD defines requirements for **{project_name}**, covering the full employee lifecycle — recruitment, payroll, leave management, and performance reviews.
+
+### 1.1 Business Goals
+- **Payroll Accuracy:** Achieve 100% payroll accuracy with automated tax and benefits deductions.
+- **Reduce Admin Overhead:** Cut HR administrative hours by 60% through self-service employee portals.
+- **Talent Retention:** Implement structured performance cycles to identify and retain top performers.
+
+### 1.2 Target Stakeholders
+- **HR Manager:** Manages employee records, approves leave requests, oversees recruitment.
+- **Payroll Specialist:** Runs monthly payroll, handles deductions and tax filings.
+- **Employee:** Views payslips, applies for leave, completes performance reviews.
+
+## 2. Core Workflow
+```mermaid
+graph TD
+    A[Employee Submits Leave Request] --> B[Manager Notified]
+    B --> C{{Approve / Reject}}
+    C -- Approved --> D[Leave Calendar Updated]
+    C -- Rejected --> E[Employee Notified with Reason]
+    D --> F[Payroll Adjusted for Leave Type]
+```
+
+## 3. Scope
+- **HRIS:** Centralized employee records, org chart, contract management.
+- **Payroll:** Salary calculation, tax deductions, payslip generation.
+- **Leave Management:** Leave types, balance tracking, approval workflows.
+
+### 3.1 Custom Scope Context
+*{scope_details}*
+        """,
+        "srs": """
+# Software Requirements Specification (SRS)
+## 1. Functional Requirements
+
+### 1.1 Payroll Processing
+- **Req-HR-1.1.1 (Gross Pay):** System must calculate gross pay based on salary grade, overtime hours, and active allowances.
+- **Req-HR-1.1.2 (Tax Deductions):** System must apply statutory tax deductions per jurisdiction and generate tax certificates annually.
+
+### 1.2 Leave Management
+- **Req-HR-1.2.1 (Leave Balance):** Employee leave balances must auto-refresh on the 1st of each month.
+- **Req-HR-1.2.2 (Approval SLA):** Manager must approve or reject leave requests within 48 hours; system escalates after that.
+
+## 2. Non-Functional Requirements
+### 2.1 Privacy
+- Employee PII must be stored in GDPR-compliant encrypted fields.
+- Payroll data must only be accessible to authorized HR and Finance roles.
+        """,
+        "use_cases": """
+# Use Case Specifications
+
+| Use Case ID | Use Case Name | Actor | Preconditions | Postconditions |
+| :--- | :--- | :--- | :--- | :--- |
+| **UC-HR-101** | Process Monthly Payroll | Payroll Specialist | Attendance data finalized | Payslips generated, bank transfers initiated |
+| **UC-HR-102** | Submit Leave Request | Employee | Sufficient leave balance | Request sent to manager for approval |
+| **UC-HR-103** | Conduct Performance Review | HR Manager | Review cycle opened | Review scores recorded, development plans created |
+
+### Use Case Flow: UC-HR-101 (Process Monthly Payroll)
+1. Payroll specialist locks attendance data for the month.
+2. System calculates gross pay for all active employees.
+3. Statutory deductions (tax, pension, insurance) are applied.
+4. Net pay is calculated and payslips are generated as PDFs.
+5. Bank transfer file is exported and submitted to finance.
+        """,
+        "user_stories": """
+# User Stories & Acceptance Criteria
+
+### US-HR-201: Self-Service Payslip Access
+**As an** Employee
+**I want to** download my payslip for any month through the HR portal
+**So that** I don't need to contact HR for pay documentation.
+
+*Acceptance Criteria:*
+- **AC1:** Payslips are published within 2 business days of payroll run.
+- **AC2:** Employee can download payslip as a password-protected PDF.
+- **AC3:** Payslip history is retained for at least 5 years.
+
+---
+
+### US-HR-202: Automated Leave Escalation
+**As an** HR Manager
+**I want to** ensure no leave request sits unanswered for more than 48 hours
+**So that** employees receive timely responses for planning purposes.
+
+*Acceptance Criteria:*
+- **AC1:** System sends manager a reminder after 24 hours of no action.
+- **AC2:** After 48 hours, request escalates to the HR Manager.
+- **AC3:** Employee is notified of escalation automatically.
+        """,
+        "db_suggestions": """
+# Database Design Suggestions
+
+Suggested stack: **PostgreSQL** with row-level security for payroll privacy; **Elasticsearch** for employee search and org chart queries.
+
+## Entity Relationship Outline
+```mermaid
+erDiagram
+    EMPLOYEES ||--|| POSITIONS : holds
+    EMPLOYEES ||--o{ PAYROLL_RECORDS : paid_via
+    EMPLOYEES ||--o{ LEAVE_REQUESTS : submits
+```
+
+## SQL DDL Scripts
+```sql
+CREATE TABLE employees (
+    employee_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    full_name VARCHAR(100) NOT NULL,
+    email VARCHAR(150) UNIQUE NOT NULL,
+    department VARCHAR(80),
+    salary_grade VARCHAR(10),
+    employment_type VARCHAR(20) DEFAULT 'full-time',
+    hired_date DATE NOT NULL
+);
+
+CREATE TABLE payroll_records (
+    record_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    employee_id UUID REFERENCES employees(employee_id),
+    pay_period DATE NOT NULL,
+    gross_pay NUMERIC(12,2) NOT NULL,
+    deductions NUMERIC(12,2) DEFAULT 0,
+    net_pay NUMERIC(12,2) NOT NULL,
+    processed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+```
+        """
+    },
+    "Logistics & Transportation": {
+        "features": ["Fleet Management & GPS Tracking", "Route Optimization Engine", "Freight & Cargo Booking", "Driver Scheduling", "Customs & Compliance Docs", "Delivery Proof (ePOD)"],
+        "default_scope": "Build a Logistics & Transportation ERP with real-time fleet GPS tracking, route optimization, freight booking management, driver scheduling, and customs documentation workflows.",
+        "kpi_metrics": {"total_requirements": "28 Detailed Items", "avg_complexity": "High (M3-M5)", "compliance_grade": "DOT / FMCSA / Customs Ready"},
+        "brd": """
+# Business Requirements Document (BRD)
+## 1. Project Overview & Context
+This BRD defines requirements for **{project_name}**, a logistics and transportation management platform handling fleet tracking, freight booking, route planning, and last-mile delivery proof.
+
+### 1.1 Business Goals
+- **Optimize Routes:** Reduce average fuel cost per delivery by 18% through AI-powered route optimization.
+- **Improve On-Time Delivery:** Achieve ≥97% on-time delivery rate across all routes.
+- **Paperless Operations:** Eliminate manual delivery paperwork with electronic proof of delivery (ePOD).
+
+### 1.2 Target Stakeholders
+- **Fleet Dispatcher:** Assigns drivers, monitors vehicle locations, handles route deviations.
+- **Driver:** Receives job assignments, captures delivery photos and signatures.
+- **Operations Manager:** Reviews KPIs, fuel costs, and SLA compliance metrics.
+
+## 2. Core Workflow
+```mermaid
+graph TD
+    A[Freight Order Received] --> B[Route Optimization Engine]
+    B --> C[Driver & Vehicle Assigned]
+    C --> D[Real-time GPS Tracking Active]
+    D --> E[Driver Arrives at Delivery Point]
+    E --> F[ePOD Captured — Photo + Signature]
+    F --> G[Delivery Confirmed in System]
+```
+
+## 3. Scope
+- **Fleet Tracking:** Live GPS coordinates updated every 60 seconds.
+- **Route Planning:** Multi-stop optimization considering traffic, weight limits, and delivery windows.
+- **ePOD:** Digital signature and photo capture at delivery point.
+
+### 3.1 Custom Scope Context
+*{scope_details}*
+        """,
+        "srs": """
+# Software Requirements Specification (SRS)
+## 1. Functional Requirements
+
+### 1.1 Fleet Tracking
+- **Req-LT-1.1.1 (GPS Refresh):** Vehicle GPS coordinates must be ingested and stored every 60 seconds during active trips.
+- **Req-LT-1.1.2 (Geofence Alerts):** System must trigger alerts when a vehicle deviates more than 500m from the assigned route.
+
+### 1.2 Proof of Delivery
+- **Req-LT-1.2.1 (ePOD Capture):** Driver mobile app must capture recipient signature and at least one delivery photo.
+- **Req-LT-1.2.2 (Sync):** ePOD data must sync to the server within 30 seconds of capture on LTE or WiFi.
+
+## 2. Non-Functional Requirements
+### 2.1 Performance
+- Map rendering with up to 500 simultaneous vehicle markers must load within 3 seconds.
+- Route optimization for up to 50 stops must complete in under 10 seconds.
+        """,
+        "use_cases": """
+# Use Case Specifications
+
+| Use Case ID | Use Case Name | Actor | Preconditions | Postconditions |
+| :--- | :--- | :--- | :--- | :--- |
+| **UC-LT-101** | Assign Driver to Delivery Route | Fleet Dispatcher | Freight order confirmed | Driver notified, route loaded on mobile app |
+| **UC-LT-102** | Capture Electronic Proof of Delivery | Driver | Arrival at delivery address | ePOD synced, order status updated to 'Delivered' |
+| **UC-LT-103** | Generate Route Deviation Alert | System | Vehicle exceeds geofence boundary | Alert sent to dispatcher, driver notified |
+
+### Use Case Flow: UC-LT-101 (Assign Driver to Delivery Route)
+1. Dispatcher views open freight orders in the dispatch dashboard.
+2. System suggests optimal driver/vehicle match based on proximity and capacity.
+3. Dispatcher confirms assignment — driver receives push notification.
+4. Route is displayed on driver's mobile app with turn-by-turn navigation.
+5. GPS tracking activates and fleet map updates in real time.
+        """,
+        "user_stories": """
+# User Stories & Acceptance Criteria
+
+### US-LT-201: Live Fleet Map
+**As a** Fleet Dispatcher
+**I want to** see all active vehicles on a live map dashboard
+**So that** I can quickly redirect drivers during unexpected delays.
+
+*Acceptance Criteria:*
+- **AC1:** Map refreshes vehicle positions every 60 seconds.
+- **AC2:** Each vehicle marker shows driver name, current speed, and ETA.
+- **AC3:** Clicking a vehicle opens the full trip details panel.
+
+---
+
+### US-LT-202: Digital Proof of Delivery
+**As a** Operations Manager
+**I want to** access ePOD records with photo evidence for every completed delivery
+**So that** I can resolve customer disputes with documented proof.
+
+*Acceptance Criteria:*
+- **AC1:** Each delivery record links to its ePOD with photo and signature.
+- **AC2:** ePOD is accessible from the order detail page within 5 minutes of capture.
+- **AC3:** Records are retained for a minimum of 3 years.
+        """,
+        "db_suggestions": """
+# Database Design Suggestions
+
+Suggested stack: **PostgreSQL + PostGIS** for geospatial fleet data; **TimescaleDB** for GPS time-series telemetry.
+
+## Entity Relationship Outline
+```mermaid
+erDiagram
+    VEHICLES ||--o{ TRIPS : assigned_to
+    DRIVERS ||--o{ TRIPS : operates
+    TRIPS ||--o{ DELIVERY_STOPS : includes
+    DELIVERY_STOPS ||--o{ EPOD_RECORDS : captures
+```
+
+## SQL DDL Scripts
+```sql
+CREATE TABLE trips (
+    trip_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    vehicle_id UUID NOT NULL,
+    driver_id UUID NOT NULL,
+    planned_start TIMESTAMP NOT NULL,
+    actual_start TIMESTAMP,
+    status VARCHAR(20) DEFAULT 'scheduled'
+);
+
+CREATE TABLE epod_records (
+    epod_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    stop_id UUID NOT NULL,
+    photo_url TEXT,
+    signature_url TEXT,
+    recipient_name VARCHAR(100),
+    captured_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+```
+        """
+    },
+    "Agriculture & FarmTech": {
+        "features": ["Crop Planning & Rotation", "IoT Soil & Weather Sensors", "Irrigation Automation", "Livestock Management", "Harvest & Yield Tracking", "Farm-to-Market Supply"],
+        "default_scope": "Build an Agriculture ERP integrating IoT sensors for soil/weather monitoring, crop planning, automated irrigation control, livestock tracking, and yield reporting with supply chain traceability.",
+        "kpi_metrics": {"total_requirements": "24 Detailed Items", "avg_complexity": "Medium (M2-M4)", "compliance_grade": "GAP / Organic Certification Ready"},
+        "brd": """
+# Business Requirements Document (BRD)
+## 1. Project Overview & Context
+This BRD defines requirements for **{project_name}**, an agricultural management platform covering crop planning, IoT-driven irrigation, livestock health monitoring, and farm-to-market traceability.
+
+### 1.1 Business Goals
+- **Increase Crop Yield:** Boost average yield per hectare by 15% through precision irrigation and soil analytics.
+- **Reduce Water Waste:** Cut irrigation water usage by 30% with automated soil moisture-based scheduling.
+- **Full Traceability:** Track produce from field to consumer, satisfying GAP certification requirements.
+
+### 1.2 Target Stakeholders
+- **Farm Manager:** Monitors crop health, plans planting schedules, reviews yield reports.
+- **Agronomist:** Analyzes soil data, recommends fertilizer and irrigation adjustments.
+- **Logistics Coordinator:** Manages harvest-to-distribution handoffs.
+
+## 2. Core Workflow
+```mermaid
+graph TD
+    A[Soil Moisture Sensor Reading] --> B{{Below Threshold?}}
+    B -- Yes --> C[Trigger Automated Irrigation]
+    B -- No --> D[Schedule Next Reading in 1 Hour]
+    C --> E[Log Irrigation Event]
+    E --> F[Agronomist Dashboard Updated]
+```
+
+## 3. Scope
+- **IoT Integration:** Soil, weather, and moisture sensor data ingestion.
+- **Irrigation Control:** Automated zone-based watering schedules.
+- **Traceability:** Batch and lot numbering from seed to sale.
+
+### 3.1 Custom Scope Context
+*{scope_details}*
+        """,
+        "srs": """
+# Software Requirements Specification (SRS)
+## 1. Functional Requirements
+
+### 1.1 IoT Sensor Integration
+- **Req-AG-1.1.1 (Sensor Ingest):** System must receive and store sensor readings from up to 1,000 IoT devices every 15 minutes.
+- **Req-AG-1.1.2 (Alert Threshold):** Soil moisture dropping below 35% field capacity must trigger an irrigation alert within 5 minutes.
+
+### 1.2 Crop Traceability
+- **Req-AG-1.2.1 (Batch Tracking):** Every crop batch must be assigned a unique QR-coded lot number traceable from planting to delivery.
+- **Req-AG-1.2.2 (Audit Logs):** All chemical applications (pesticides, fertilizers) must be logged with date, quantity, and applicator.
+
+## 2. Non-Functional Requirements
+### 2.1 Availability
+- The irrigation control API must maintain 99.9% uptime during growing season.
+- System must operate in low-connectivity rural areas with offline sync capability.
+        """,
+        "use_cases": """
+# Use Case Specifications
+
+| Use Case ID | Use Case Name | Actor | Preconditions | Postconditions |
+| :--- | :--- | :--- | :--- | :--- |
+| **UC-AG-101** | Trigger Automated Irrigation | IoT System | Soil moisture < threshold | Irrigation zone activated, event logged |
+| **UC-AG-102** | Record Harvest Yield | Farm Manager | Harvest complete | Yield data logged, lot number assigned |
+| **UC-AG-103** | Generate Traceability Report | Logistics Coordinator | Produce batch dispatched | QR-linked trace report available for buyers |
+
+### Use Case Flow: UC-AG-101 (Trigger Automated Irrigation)
+1. Soil moisture sensor transmits reading below 35% field capacity.
+2. System evaluates active irrigation schedule and weather forecast.
+3. If no rain expected within 6 hours, irrigation command is sent.
+4. Irrigation zone valve opens and duration is calculated based on crop type.
+5. Irrigation event is logged with zone ID, duration, and water volume.
+        """,
+        "user_stories": """
+# User Stories & Acceptance Criteria
+
+### US-AG-201: Smart Irrigation Dashboard
+**As a** Farm Manager
+**I want to** see all irrigation zones and their soil moisture levels on a single dashboard
+**So that** I can make informed watering decisions without walking the field.
+
+*Acceptance Criteria:*
+- **AC1:** Dashboard displays real-time moisture levels for all registered sensor zones.
+- **AC2:** Zones below threshold are highlighted in amber/red.
+- **AC3:** Manager can manually trigger or pause irrigation from the dashboard.
+
+---
+
+### US-AG-202: Harvest Traceability QR Code
+**As a** Logistics Coordinator
+**I want to** print a QR code for every harvest batch
+**So that** buyers and inspectors can trace the produce back to the field and treatment records.
+
+*Acceptance Criteria:*
+- **AC1:** QR code links to a public traceability page with field ID, planting date, and treatments applied.
+- **AC2:** QR code is generated within 60 seconds of harvest record submission.
+- **AC3:** Page is mobile-friendly and accessible without login.
+        """,
+        "db_suggestions": """
+# Database Design Suggestions
+
+Suggested stack: **PostgreSQL + TimescaleDB** for IoT sensor time-series; **MinIO / S3** for traceability report and image storage.
+
+## Entity Relationship Outline
+```mermaid
+erDiagram
+    FIELDS ||--o{ CROP_BATCHES : grows
+    FIELDS ||--o{ SENSOR_READINGS : monitored_by
+    CROP_BATCHES ||--o{ TREATMENT_LOGS : receives
+    CROP_BATCHES ||--o{ HARVESTS : produces
+```
+
+## SQL DDL Scripts
+```sql
+CREATE TABLE fields (
+    field_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    field_name VARCHAR(100) NOT NULL,
+    area_hectares NUMERIC(8,2),
+    soil_type VARCHAR(50),
+    location_coords POINT
+);
+
+CREATE TABLE sensor_readings (
+    reading_id BIGSERIAL PRIMARY KEY,
+    field_id UUID REFERENCES fields(field_id),
+    sensor_type VARCHAR(30) NOT NULL,  -- 'moisture', 'temperature', 'ph'
+    value NUMERIC(8,3) NOT NULL,
+    recorded_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+```
+        """
+    },
+    "Real Estate & PropTech": {
+        "features": ["Property Listings Management", "Tenant CRM & Leasing", "Maintenance Request Tracking", "Rent Collection & Invoicing", "Document & Contract Vault", "Analytics & Valuation Reports"],
+        "default_scope": "Build a Real Estate ERP managing property listings, tenant CRM, lease lifecycle management, maintenance ticketing, automated rent invoicing, and market valuation analytics.",
+        "kpi_metrics": {"total_requirements": "25 Detailed Items", "avg_complexity": "Medium (M2-M4)", "compliance_grade": "Fair Housing / GDPR / RERA Ready"},
+        "brd": """
+# Business Requirements Document (BRD)
+## 1. Project Overview & Context
+This BRD outlines the property management requirements for **{project_name}**, covering listings, tenant management, lease administration, maintenance workflows, and financial reporting.
+
+### 1.1 Business Goals
+- **Reduce Vacancy Rates:** Cut average vacancy duration by 40% through automated tenant matching and fast listing publication.
+- **Automate Rent Collection:** Achieve 95% on-time rent collection with automated invoicing and payment reminders.
+- **Streamline Maintenance:** Resolve 85% of tenant maintenance tickets within 72 hours.
+
+### 1.2 Target Stakeholders
+- **Property Manager:** Manages listings, approves leases, oversees maintenance.
+- **Tenant:** Pays rent online, submits maintenance requests, accesses documents.
+- **Finance Officer:** Tracks rental income, overdue accounts, and financial reports.
+
+## 2. Core Workflow
+```mermaid
+graph TD
+    A[Tenant Submits Maintenance Request] --> B[Property Manager Notified]
+    B --> C[Assign to Maintenance Vendor]
+    C --> D[Vendor Completes Work]
+    D --> E[Tenant Confirms Resolution]
+    E --> F[Ticket Closed & Invoice Logged]
+```
+
+## 3. Scope
+- **Listings:** Property catalog with photos, specs, and availability status.
+- **Leasing:** Digital lease signing, renewal reminders, termination workflows.
+- **Maintenance:** Ticketing system with vendor assignment and SLA tracking.
+
+### 3.1 Custom Scope Context
+*{scope_details}*
+        """,
+        "srs": """
+# Software Requirements Specification (SRS)
+## 1. Functional Requirements
+
+### 1.1 Rent Collection
+- **Req-RE-1.1.1 (Auto Invoice):** Rent invoices must auto-generate on the 25th of each month for the upcoming rental period.
+- **Req-RE-1.1.2 (Payment Reminder):** SMS and email reminders must fire 5 days before and on the due date for unpaid invoices.
+
+### 1.2 Lease Management
+- **Req-RE-1.2.1 (Digital Signature):** Lease agreements must support legally binding e-signature workflows.
+- **Req-RE-1.2.2 (Renewal Alerts):** System must notify Property Manager 60 days before lease expiry.
+
+## 2. Non-Functional Requirements
+### 2.1 Security & Compliance
+- All tenant documents must be stored in encrypted cloud storage with access audit logs.
+- Platform must comply with Fair Housing Act for listing display rules.
+        """,
+        "use_cases": """
+# Use Case Specifications
+
+| Use Case ID | Use Case Name | Actor | Preconditions | Postconditions |
+| :--- | :--- | :--- | :--- | :--- |
+| **UC-RE-101** | Publish Property Listing | Property Manager | Property details entered | Listing live on portal within 10 minutes |
+| **UC-RE-102** | Submit Maintenance Request | Tenant | Logged into tenant portal | Ticket created, vendor notified |
+| **UC-RE-103** | Process Rent Payment | Tenant | Invoice generated | Payment recorded, receipt emailed |
+
+### Use Case Flow: UC-RE-103 (Process Rent Payment)
+1. Tenant receives rent invoice via email/SMS.
+2. Tenant clicks payment link and selects payment method (bank transfer/card).
+3. Payment gateway processes transaction.
+4. System records payment against invoice and updates ledger.
+5. Receipt PDF is emailed to tenant; landlord receives payment confirmation.
+        """,
+        "user_stories": """
+# User Stories & Acceptance Criteria
+
+### US-RE-201: Automated Rent Reminder
+**As a** Property Manager
+**I want to** automatically send payment reminders to tenants with unpaid rent
+**So that** I don't have to manually chase overdue payments.
+
+*Acceptance Criteria:*
+- **AC1:** System sends reminder 5 days before and on the due date.
+- **AC2:** If still unpaid after due date, reminder escalates every 3 days.
+- **AC3:** Manager receives a weekly overdue rent summary.
+
+---
+
+### US-RE-202: Maintenance SLA Dashboard
+**As a** Property Manager
+**I want to** see all open maintenance tickets with their SLA countdown
+**So that** I can prioritize urgent issues and hold vendors accountable.
+
+*Acceptance Criteria:*
+- **AC1:** Dashboard displays all open tickets sorted by SLA urgency.
+- **AC2:** Tickets past 72 hours are highlighted in red.
+- **AC3:** Manager can re-assign a ticket to another vendor with one click.
+        """,
+        "db_suggestions": """
+# Database Design Suggestions
+
+Suggested stack: **PostgreSQL** for property and lease records; **AWS S3 / Azure Blob** for document and image vault.
+
+## Entity Relationship Outline
+```mermaid
+erDiagram
+    PROPERTIES ||--o{ UNITS : contains
+    UNITS ||--o{ LEASES : leased_via
+    LEASES ||--|| TENANTS : held_by
+    UNITS ||--o{ MAINTENANCE_TICKETS : has
+```
+
+## SQL DDL Scripts
+```sql
+CREATE TABLE properties (
+    property_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    name VARCHAR(200) NOT NULL,
+    address TEXT NOT NULL,
+    total_units INT NOT NULL,
+    property_type VARCHAR(50)
+);
+
+CREATE TABLE leases (
+    lease_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    unit_id UUID NOT NULL,
+    tenant_id UUID NOT NULL,
+    start_date DATE NOT NULL,
+    end_date DATE NOT NULL,
+    monthly_rent NUMERIC(10,2) NOT NULL,
+    status VARCHAR(20) DEFAULT 'active'
+);
+```
+        """
+    },
+    "Legal & Compliance": {
+        "features": ["Case & Matter Management", "Document Drafting & Versioning", "Compliance Calendar & Deadlines", "Client Billing & Time Tracking", "Court Filing Management", "Regulatory Change Monitoring"],
+        "default_scope": "Design a Legal ERP covering case matter management, document versioning, compliance deadline calendars, client billing, time tracking, and court filing workflows.",
+        "kpi_metrics": {"total_requirements": "26 Detailed Items", "avg_complexity": "High (M3-M5)", "compliance_grade": "GDPR / Bar Association Standards Ready"},
+        "brd": """
+# Business Requirements Document (BRD)
+## 1. Project Overview & Context
+This BRD defines requirements for **{project_name}**, a legal practice management platform covering case management, document drafting, compliance deadlines, client invoicing, and court submissions.
+
+### 1.1 Business Goals
+- **Reduce Missed Deadlines:** Eliminate court deadline misses through automated compliance calendar alerts.
+- **Streamline Billing:** Automate client invoicing from time-tracked activities to reduce billing disputes.
+- **Secure Document Management:** Provide version-controlled, encrypted document vault for all case files.
+
+### 1.2 Target Stakeholders
+- **Attorney:** Manages cases, drafts documents, tracks billable hours.
+- **Paralegal:** Manages court filings, deadline calendars, and document requests.
+- **Client:** Views case status, uploads documents, reviews invoices.
+
+## 2. Core Workflow
+```mermaid
+graph TD
+    A[New Case Opened] --> B[Client & Matter Created]
+    B --> C[Key Deadlines Added to Compliance Calendar]
+    C --> D[Attorney Tracks Billable Hours]
+    D --> E[Monthly Invoice Auto-Generated]
+    E --> F[Client Reviews & Pays Invoice]
+```
+
+## 3. Scope
+- **Case Management:** Matter intake, status tracking, stakeholder mapping.
+- **Document Vault:** Version control, e-signature, access logs.
+- **Billing:** Time entry, invoice generation, payment reconciliation.
+
+### 3.1 Custom Scope Context
+*{scope_details}*
+        """,
+        "srs": """
+# Software Requirements Specification (SRS)
+## 1. Functional Requirements
+
+### 1.1 Deadline Management
+- **Req-LC-1.1.1 (Calendar Sync):** Compliance deadlines must sync to attorney Outlook/Google calendars via iCal feed.
+- **Req-LC-1.1.2 (Alert Cascade):** Alerts must fire 30, 14, 7, and 1 day before each court deadline.
+
+### 1.2 Time & Billing
+- **Req-LC-1.2.1 (Time Entry):** Attorneys must log billable time in 6-minute increments (0.1 hour) per standard billing practice.
+- **Req-LC-1.2.2 (Invoice Generation):** Monthly invoices must auto-compile all approved time entries and disbursements.
+
+## 2. Non-Functional Requirements
+### 2.1 Security
+- All case documents must be encrypted at rest and accessible only to assigned matter team members.
+- Complete audit trail of document access, edits, and downloads.
+        """,
+        "use_cases": """
+# Use Case Specifications
+
+| Use Case ID | Use Case Name | Actor | Preconditions | Postconditions |
+| :--- | :--- | :--- | :--- | :--- |
+| **UC-LC-101** | Open New Legal Matter | Attorney | Client onboarded | Matter ID created, team assigned, calendar seeded |
+| **UC-LC-102** | File Court Document | Paralegal | Document finalized and signed | Filing confirmation stored, deadline updated |
+| **UC-LC-103** | Generate Client Invoice | Billing System | Month-end triggered | Invoice PDF sent to client via email |
+
+### Use Case Flow: UC-LC-101 (Open New Legal Matter)
+1. Attorney creates new matter with case type, jurisdiction, and client reference.
+2. System generates unique matter number and creates document folder.
+3. Key statutory deadlines are auto-populated from the jurisdiction template.
+4. Matter team members are assigned with role-based access.
+5. Compliance calendar entries are synced to team members' calendars.
+        """,
+        "user_stories": """
+# User Stories & Acceptance Criteria
+
+### US-LC-201: Court Deadline Alert Cascade
+**As an** Attorney
+**I want to** receive escalating reminders as court deadlines approach
+**So that** I never miss a filing deadline due to oversight.
+
+*Acceptance Criteria:*
+- **AC1:** Alerts fire at 30, 14, 7, and 1 day intervals via email and push notification.
+- **AC2:** 1-day alert includes a direct link to the related document for immediate action.
+- **AC3:** Attorney can snooze a reminder with a mandatory note explaining the delay.
+
+---
+
+### US-LC-202: Automated Monthly Invoice
+**As a** Billing Administrator
+**I want to** auto-generate client invoices at month-end from approved time entries
+**So that** billing is consistent and reduces manual reconciliation effort.
+
+*Acceptance Criteria:*
+- **AC1:** Invoice compiles all approved time entries and disbursements for the billing period.
+- **AC2:** Invoice PDF is generated and emailed to the client within 2 hours of month-end close.
+- **AC3:** Invoice status updates automatically when payment is received.
+        """,
+        "db_suggestions": """
+# Database Design Suggestions
+
+Suggested stack: **PostgreSQL** with row-level security for matter isolation; **S3-compatible vault** for encrypted document storage.
+
+## Entity Relationship Outline
+```mermaid
+erDiagram
+    CLIENTS ||--o{ MATTERS : hires_for
+    MATTERS ||--o{ TIME_ENTRIES : billed_via
+    MATTERS ||--o{ DOCUMENTS : files
+    MATTERS ||--o{ DEADLINES : has
+```
+
+## SQL DDL Scripts
+```sql
+CREATE TABLE matters (
+    matter_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    matter_number VARCHAR(30) UNIQUE NOT NULL,
+    client_id UUID NOT NULL,
+    case_type VARCHAR(80) NOT NULL,
+    jurisdiction VARCHAR(80),
+    status VARCHAR(20) DEFAULT 'open',
+    opened_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE time_entries (
+    entry_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    matter_id UUID REFERENCES matters(matter_id),
+    attorney_id UUID NOT NULL,
+    hours NUMERIC(5,1) NOT NULL,
+    description TEXT,
+    rate NUMERIC(8,2) NOT NULL,
+    entry_date DATE NOT NULL,
+    approved BOOLEAN DEFAULT FALSE
+);
+```
+        """
+    },
+    "Government & Public Sector": {
+        "features": ["Citizen Services Portal", "Budget & Expenditure Management", "Grant Management", "Permit & License Issuance", "Public Asset Registry", "Procurement & Tendering"],
+        "default_scope": "Build a Government ERP for citizen service delivery, budget tracking, grant management, e-permit issuance, public asset registry, and transparent procurement/tendering workflows.",
+        "kpi_metrics": {"total_requirements": "31 Detailed Items", "avg_complexity": "High (M3-M5)", "compliance_grade": "FISMA / Open Gov / GDPR Ready"},
+        "brd": """
+# Business Requirements Document (BRD)
+## 1. Project Overview & Context
+This BRD defines requirements for **{project_name}**, a public sector ERP platform enabling citizen service delivery, budget controls, permit processing, and transparent procurement management.
+
+### 1.1 Business Goals
+- **Digitize Citizen Services:** Migrate 80% of in-person service applications to the online citizen portal within 12 months.
+- **Budget Transparency:** Provide real-time expenditure dashboards accessible to authorized auditors and the public.
+- **Accelerate Permit Processing:** Reduce average permit issuance time from 21 days to 5 business days.
+
+### 1.2 Target Stakeholders
+- **Citizen:** Applies for permits, tracks application status, pays government fees.
+- **Department Head:** Manages departmental budgets, approves expenditures.
+- **Procurement Officer:** Publishes tenders, evaluates bids, awards contracts.
+
+## 2. Core Workflow
+```mermaid
+graph TD
+    A[Citizen Submits Permit Application] --> B[Document Verification]
+    B --> C[Assign to Reviewing Officer]
+    C --> D{{Inspection Required?}}
+    D -- Yes --> E[Schedule Field Inspection]
+    D -- No --> F[Approve & Issue Permit]
+    E --> F
+    F --> G[Citizen Notified, Permit Downloaded]
+```
+
+## 3. Scope
+- **Citizen Portal:** Online applications, status tracking, digital permit downloads.
+- **Budget Module:** Departmental budget allocation, expenditure tracking, audit trails.
+- **Procurement:** Tender publishing, bid evaluation, contract awards.
+
+### 3.1 Custom Scope Context
+*{scope_details}*
+        """,
+        "srs": """
+# Software Requirements Specification (SRS)
+## 1. Functional Requirements
+
+### 1.1 Citizen Services
+- **Req-GV-1.1.1 (Online Application):** Citizens must be able to submit permit applications with document attachments without requiring in-person visits.
+- **Req-GV-1.1.2 (Status Tracking):** Citizens must receive email/SMS updates at each stage of application processing.
+
+### 1.2 Budget Management
+- **Req-GV-1.2.1 (Budget Alerts):** Departments approaching 90% of budget utilization must trigger automatic alerts to the Finance Director.
+- **Req-GV-1.2.2 (Expenditure Audit):** All expenditure entries must carry a digital approval trail viewable by auditors.
+
+## 2. Non-Functional Requirements
+### 2.1 Security & Accessibility
+- Platform must achieve WCAG 2.1 AA accessibility compliance for the citizen portal.
+- All citizen PII must be stored on government-approved data centers with FISMA compliance.
+        """,
+        "use_cases": """
+# Use Case Specifications
+
+| Use Case ID | Use Case Name | Actor | Preconditions | Postconditions |
+| :--- | :--- | :--- | :--- | :--- |
+| **UC-GV-101** | Submit Building Permit Application | Citizen | Account registered | Application ID issued, documents queued for review |
+| **UC-GV-102** | Approve Departmental Budget Request | Finance Director | Budget request submitted | Budget allocated, department notified |
+| **UC-GV-103** | Publish Procurement Tender | Procurement Officer | Tender details finalized | Tender live on public portal, submission period open |
+
+### Use Case Flow: UC-GV-101 (Submit Building Permit Application)
+1. Citizen registers on the portal and selects 'Building Permit' service.
+2. Application form is completed with project details and documents attached.
+3. System validates document completeness and assigns a reference number.
+4. Application is routed to the reviewing officer for the relevant district.
+5. Citizen receives email confirmation with expected decision timeline.
+        """,
+        "user_stories": """
+# User Stories & Acceptance Criteria
+
+### US-GV-201: Real-Time Permit Status
+**As a** Citizen
+**I want to** track the status of my permit application online
+**So that** I don't have to call the department repeatedly for updates.
+
+*Acceptance Criteria:*
+- **AC1:** Citizen can view current stage (Submitted → Under Review → Approved/Rejected).
+- **AC2:** Status updates are pushed via SMS and email within 1 hour of each stage change.
+- **AC3:** If rejected, reason is clearly stated with resubmission instructions.
+
+---
+
+### US-GV-202: Transparent Budget Dashboard
+**As a** Public Auditor
+**I want to** view departmental expenditure breakdowns in a public dashboard
+**So that** government spending is transparent and accountable.
+
+*Acceptance Criteria:*
+- **AC1:** Dashboard displays budget vs. actual spend per department.
+- **AC2:** Data is refreshed daily and available without login.
+- **AC3:** Drill-down view shows individual expenditure line items.
+        """,
+        "db_suggestions": """
+# Database Design Suggestions
+
+Suggested stack: **PostgreSQL** on government-approved infrastructure (on-premise or GovCloud); **Elasticsearch** for permit search and audit log queries.
+
+## Entity Relationship Outline
+```mermaid
+erDiagram
+    CITIZENS ||--o{ APPLICATIONS : submits
+    APPLICATIONS ||--o{ REVIEW_STAGES : passes_through
+    DEPARTMENTS ||--o{ BUDGETS : allocated
+    BUDGETS ||--o{ EXPENDITURES : spent_on
+```
+
+## SQL DDL Scripts
+```sql
+CREATE TABLE applications (
+    app_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    citizen_id UUID NOT NULL,
+    service_type VARCHAR(80) NOT NULL,
+    reference_number VARCHAR(30) UNIQUE NOT NULL,
+    status VARCHAR(30) DEFAULT 'submitted',
+    submitted_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE expenditures (
+    exp_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    budget_id UUID NOT NULL,
+    amount NUMERIC(14,2) NOT NULL,
+    description TEXT,
+    approved_by VARCHAR(100),
+    incurred_at DATE NOT NULL
+);
+```
+        """
+    },
+    "Hospitality & Tourism": {
+        "features": ["Hotel Property Management (PMS)", "Booking & Reservation Engine", "Restaurant POS & Menu", "Guest CRM & Loyalty", "Housekeeping Management", "Revenue & Rate Management"],
+        "default_scope": "Build a Hospitality ERP with a hotel property management system, online reservation engine, restaurant POS, guest CRM and loyalty programs, housekeeping workflows, and dynamic revenue management.",
+        "kpi_metrics": {"total_requirements": "27 Detailed Items", "avg_complexity": "Medium (M2-M4)", "compliance_grade": "PCI-DSS / GDPR / Tourism Board Ready"},
+        "brd": """
+# Business Requirements Document (BRD)
+## 1. Project Overview & Context
+This BRD defines requirements for **{project_name}**, a hospitality management platform covering hotel reservations, room management, restaurant operations, guest loyalty, and dynamic pricing.
+
+### 1.1 Business Goals
+- **Increase Occupancy Rate:** Target ≥85% average room occupancy through dynamic rate optimization.
+- **Enhance Guest Experience:** Achieve guest satisfaction score ≥4.5/5 via personalized loyalty programs.
+- **Streamline Housekeeping:** Reduce room turnaround time from 45 minutes to under 30 minutes.
+
+### 1.2 Target Stakeholders
+- **Front Desk Agent:** Manages check-ins, check-outs, and room assignments.
+- **Revenue Manager:** Sets dynamic pricing rules, monitors occupancy and RevPAR.
+- **Guest:** Manages bookings, accesses loyalty rewards, views receipts.
+
+## 2. Core Workflow
+```mermaid
+graph TD
+    A[Guest Makes Reservation Online] --> B[PMS Allocates Room]
+    B --> C[Pre-Arrival Welcome Email Sent]
+    C --> D[Guest Checks In at Front Desk]
+    D --> E[Room Key Issued]
+    E --> F[Housekeeping Notified on Checkout]
+    F --> G[Room Cleaned & Status Updated]
+```
+
+## 3. Scope
+- **PMS:** Room inventory, reservation management, check-in/out workflows.
+- **Revenue Management:** Dynamic pricing based on occupancy, season, and demand signals.
+- **Guest CRM:** Preference profiles, loyalty tiers, targeted offers.
+
+### 3.1 Custom Scope Context
+*{scope_details}*
+        """,
+        "srs": """
+# Software Requirements Specification (SRS)
+## 1. Functional Requirements
+
+### 1.1 Reservation Engine
+- **Req-HT-1.1.1 (Real-Time Availability):** Room availability must reflect cancellations and new bookings within 5 seconds across all booking channels.
+- **Req-HT-1.1.2 (Channel Manager):** System must sync availability to OTA channels (Booking.com, Expedia) via channel manager API.
+
+### 1.2 Dynamic Pricing
+- **Req-HT-1.2.1 (Rate Rules):** Revenue manager must be able to define rate rules based on occupancy %, lead time, and day-of-week.
+- **Req-HT-1.2.2 (Competitor Rates):** System should surface competitor rate benchmarks to support pricing decisions.
+
+## 2. Non-Functional Requirements
+### 2.1 Reliability
+- Reservation booking engine must maintain 99.95% uptime with <500ms response time.
+- All payment data must be processed via PCI-DSS certified payment gateway with tokenization.
+        """,
+        "use_cases": """
+# Use Case Specifications
+
+| Use Case ID | Use Case Name | Actor | Preconditions | Postconditions |
+| :--- | :--- | :--- | :--- | :--- |
+| **UC-HT-101** | Make Hotel Room Reservation | Guest | Room availability confirmed | Booking confirmed, confirmation email sent |
+| **UC-HT-102** | Check Guest Into Room | Front Desk Agent | Reservation active, guest present | Room key issued, PMS status updated |
+| **UC-HT-103** | Update Housekeeping Status | Housekeeper | Guest checked out | Room status set to 'Cleaning', then 'Ready' |
+
+### Use Case Flow: UC-HT-101 (Make Hotel Room Reservation)
+1. Guest selects dates and room type on the booking engine.
+2. System checks real-time availability from the PMS inventory.
+3. Guest selects room, enters personal details, and provides payment.
+4. Payment is tokenized and processed via the payment gateway.
+5. Confirmation email is sent with booking reference and cancellation policy.
+        """,
+        "user_stories": """
+# User Stories & Acceptance Criteria
+
+### US-HT-201: Dynamic Room Pricing
+**As a** Revenue Manager
+**I want to** automatically adjust room rates based on occupancy and demand signals
+**So that** we maximize RevPAR during peak periods and maintain occupancy during slow seasons.
+
+*Acceptance Criteria:*
+- **AC1:** System checks occupancy levels every 4 hours and adjusts rates per active pricing rules.
+- **AC2:** Rate changes are pushed to all booking channels within 10 minutes.
+- **AC3:** Revenue Manager receives a daily rate optimization summary report.
+
+---
+
+### US-HT-202: Mobile Housekeeping Updates
+**As a** Housekeeper
+**I want to** update room cleaning status from my mobile device
+**So that** front desk knows in real time which rooms are ready for check-in.
+
+*Acceptance Criteria:*
+- **AC1:** Housekeeper can set status to 'Cleaning', 'Inspecting', or 'Ready' from the mobile app.
+- **AC2:** PMS room status updates within 30 seconds of housekeeper's action.
+- **AC3:** Front desk receives a notification when a high-priority room is marked 'Ready'.
+        """,
+        "db_suggestions": """
+# Database Design Suggestions
+
+Suggested stack: **PostgreSQL** for the PMS core; **Redis** for real-time room availability cache across booking channels.
+
+## Entity Relationship Outline
+```mermaid
+erDiagram
+    ROOMS ||--o{ RESERVATIONS : booked_via
+    GUESTS ||--o{ RESERVATIONS : makes
+    RESERVATIONS ||--o{ INVOICES : billed_with
+    GUESTS ||--|| LOYALTY_PROFILES : has
+```
+
+## SQL DDL Scripts
+```sql
+CREATE TABLE rooms (
+    room_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    room_number VARCHAR(10) UNIQUE NOT NULL,
+    room_type VARCHAR(50) NOT NULL,
+    floor INT,
+    base_rate NUMERIC(8,2) NOT NULL,
+    status VARCHAR(20) DEFAULT 'available'
+);
+
+CREATE TABLE reservations (
+    reservation_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    guest_id UUID NOT NULL,
+    room_id UUID REFERENCES rooms(room_id),
+    check_in_date DATE NOT NULL,
+    check_out_date DATE NOT NULL,
+    total_amount NUMERIC(10,2),
+    status VARCHAR(20) DEFAULT 'confirmed',
+    booked_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+```
+        """
+    },
+}
 
 
 # =====================================================================
@@ -1501,12 +2826,22 @@ def render_history_page():
 
     # ── Industry Colour Palette ────────────────────────────────────────────────
     IND_COLORS = {
-        "FinTech":       ("#34d399", "rgba(16,185,129,0.10)"),
-        "Healthcare":    ("#60a5fa", "rgba(96,165,250,0.10)"),
-        "E-commerce":    ("#f472b6", "rgba(244,114,182,0.10)"),
-        "Supply Chain":  ("#fb923c", "rgba(251,146,60,0.10)"),
-        "EdTech":        ("#a78bfa", "rgba(167,139,250,0.10)"),
-        "General":       ("#a5b4fc", "rgba(165,180,252,0.10)"),
+        "FinTech":                     ("#34d399", "rgba(16,185,129,0.10)"),
+        "Healthcare":                  ("#60a5fa", "rgba(96,165,250,0.10)"),
+        "E-commerce":                  ("#f472b6", "rgba(244,114,182,0.10)"),
+        "Supply Chain":               ("#fb923c", "rgba(251,146,60,0.10)"),
+        "EdTech":                      ("#a78bfa", "rgba(167,139,250,0.10)"),
+        "Manufacturing & Production": ("#f59e0b", "rgba(245,158,11,0.10)"),
+        "Retail & POS":               ("#ec4899", "rgba(236,72,153,0.10)"),
+        "Banking & Insurance":        ("#22d3ee", "rgba(34,211,238,0.10)"),
+        "HR & Payroll":               ("#84cc16", "rgba(132,204,22,0.10)"),
+        "Logistics & Transportation": ("#f97316", "rgba(249,115,22,0.10)"),
+        "Agriculture & FarmTech":     ("#4ade80", "rgba(74,222,128,0.10)"),
+        "Real Estate & PropTech":     ("#c084fc", "rgba(192,132,252,0.10)"),
+        "Legal & Compliance":         ("#94a3b8", "rgba(148,163,184,0.10)"),
+        "Government & Public Sector": ("#3b82f6", "rgba(59,130,246,0.10)"),
+        "Hospitality & Tourism":      ("#fbbf24", "rgba(251,191,36,0.10)"),
+        "General":                    ("#a5b4fc", "rgba(165,180,252,0.10)"),
     }
     DEFAULT_IND = ("#a5b4fc", "rgba(165,180,252,0.10)")
 
@@ -1764,11 +3099,10 @@ with kpi4:
 
 st.markdown("<div style='margin-bottom: 1.5rem;'></div>", unsafe_allow_html=True)
 
-# 7. Workspace Layout Splits
-col_form, col_display = st.columns([5, 7])
+# 7. Workspace Configuration Form (full-width)
 
 # Sidebar Form Logic Configuration
-with col_form:
+with st.container():
     st.markdown("""
     <div class="saas-card form-container">
         <div class="saas-card-title">📝 Workspace Configuration</div>
@@ -1780,31 +3114,40 @@ with col_form:
         # Form fields
         proj_name_input = st.text_input(
             "Project Name",
-            value="Zenith Supply Logistics" if not st.session_state.current_project else st.session_state.current_project,
-            placeholder="e.g., Nexus Retail Ledger"
+            value="" if not st.session_state.current_project else st.session_state.current_project,
+            placeholder="e.g., Nexus Retail Ledger, EPL Inventory, MedShield EHR..."
         )
         
+        industry_options = [
+            "— Select Industry —",
+            "FinTech", "E-commerce", "Healthcare", "Supply Chain", "EdTech",
+            "Manufacturing & Production", "Retail & POS", "Banking & Insurance",
+            "HR & Payroll", "Logistics & Transportation", "Agriculture & FarmTech",
+            "Real Estate & PropTech", "Legal & Compliance",
+            "Government & Public Sector", "Hospitality & Tourism",
+        ]
         industry_input = st.selectbox(
             "Industry Domain",
-            options=["FinTech", "E-commerce", "Healthcare", "Supply Chain", "EdTech"],
-            index=3
+            options=industry_options,
+            index=0
         )
         
-        # Load features based on industry
-        industry_key = industry_input if industry_input != "Supply Chain" else "Supply Chain"
-        available_features = INDUSTRIES[industry_key]["features"]
+        # Load features based on selected industry
+        industry_key = industry_input if industry_input != "— Select Industry —" else None
+        available_features = INDUSTRIES.get(industry_key, {}).get("features", []) if industry_key else []
         
         features_selected = st.multiselect(
             "Target Core Modules",
             options=available_features,
-            default=available_features[:3]
+            default=[],
+            placeholder="Select an Industry Domain first..."
         )
         
         scope_details = st.text_area(
             "Project Scope & Context Details",
-            value=INDUSTRIES[industry_key]["default_scope"],
+            value="",
             height=130,
-            placeholder="Describe database constraints, transactional requirements, target users..."
+            placeholder="Describe your project scope, database constraints, transactional requirements, target users..."
         )
         
         creativity_level = st.slider(
@@ -1818,8 +3161,8 @@ with col_form:
         
         generate_btn = st.button("✨ Generate ERP Requirements", use_container_width=True)
 
-# 8. Generation and tab preview block
-with col_display:
+# 8. Requirement Output Hub (full-width, below form)
+with st.container():
     st.markdown("""
     <div class="saas-card">
         <div class="saas-card-title">🔮 Requirement Output Hub</div>
@@ -1832,7 +3175,7 @@ with col_display:
         if not proj_name_input.strip():
             st.error("Please provide a valid Project Name to proceed.")
         else:
-            with st.spinner("Gemini AI synthesizing full ERP specifications (BRD, SRS, Use Cases, User Stories, DB, KPIs, Workflows, Reports)..."):
+            with st.spinner("For ERP specification (BRD, SRS, Use Case, User Story, DB, KPI, Workflow, Report)... documents are being created."):
                 try:
                     # Call Gemini service to generate all 8 requirements sections
                     requirements = gemini_service.generate_erp_requirements(
