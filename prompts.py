@@ -128,65 +128,6 @@ BRD_PROMPT_TEMPLATE = (
     " - Given {{context}}, when {{action}}, then {{result}}.\n"
     " - Given {{context}}, when {{action}}, then {{result}}.\n"
     " - Given {{context}}, when {{action}}, then {{result}}.\n\n"
-<<<<<<< HEAD
-
-    "KEY 5 - database_design (Database Design Suggestions):\n"
-    "## Core ERP Database Design Strategy\n"
-    "* **Database Engine:** {{Suggest an engine e.g. PostgreSQL and explain why for this project.}}\n"
-    "* **Audit Trail:** {{Explain audit strategy, soft deletes vs hard deletes.}}\n\n"
-    "## Sample Physical/Logical Schema Structure\n"
-    "{{table_name_1}}\n"
-    " - id (UUID, PK)\n"
-    " - {{column_name}} (VARCHAR)\n"
-    " - {{column_name}} (NUMERIC)\n"
-    " - {{column_name}} (TIMESTAMP)\n"
-    " - {{column_name}} (UUID, FK)\n\n"
-    "{{table_name_2}}\n"
-    " - id (UUID, PK)\n"
-    " - {{column_name}} (VARCHAR)\n"
-    " - {{column_name}} (NUMERIC)\n"
-    " - {{column_name}} (TIMESTAMP)\n"
-    " - {{column_name}} (UUID, FK)\n\n"
-
-    "KEY 6 - kpis (Key Performance Indicators):\n"
-    "# Key Performance Indicators (KPIs)\n"
-    "Your ERP should measure both operational metrics (business success) and technical metrics (system performance).\n\n"
-    "## Business Operations KPIs\n"
-    "* **Financials:** {{List 2-3 detailed financial KPIs like DSO, DPO, etc.}}\n"
-    "* **Operations:** {{List 2-3 detailed operational KPIs relevant to the selected modules.}}\n"
-    "* **HR / Core:** {{List 2-3 detailed internal KPIs.}}\n\n"
-    "## Technical & System KPIs\n"
-    "* **User Adoption Rate:** {{Define the metric.}}\n"
-    "* **Data Accuracy Rate:** {{Define the metric.}}\n"
-    "* **System Uptime & Latency:** {{Define the metric.}}\n\n"
-
-    "KEY 7 - workflow (Workflow Specifications):\n"
-    "# Workflows (BPMN 2.0 Framework)\n"
-    "Workflows define how data moves across departments.\n\n"
-    "## {{Generate a Realistic Process Name}} Cross-Functional Workflow\n"
-    "1. **{{Actor/Dept 1}}:** {{Detailed Action}} -> {{Resulting System State}}\n"
-    "2. **{{Actor/Dept 2}}:** {{Detailed Action}} -> {{Resulting System State}}\n"
-    "3. **{{Actor/Dept 3}}:** {{Detailed Action}} -> {{Resulting System State}}\n"
-    "4. **{{Actor/Dept 4}}:** {{Detailed Action}} -> {{Resulting System State}}\n"
-    "5. **{{Actor/Dept 5}}:** {{Detailed Action}} -> {{Resulting System State}}\n\n"
-
-    "KEY 8 - reports (Report Specifications):\n"
-    "# Reports Framework\n"
-    "ERP reports must serve multiple organizational tiers: Operational, Tactical, and Strategic.\n\n"
-    "| Report Name | Module | Target Audience | Key Data Fields Included | Frequency |\n"
-    "|---|---|---|---|---|\n"
-    "| {{Report Name}} | {{Module}} | {{Target Audience}} | {{Key Data Fields Included}} | {{Frequency}} |\n"
-    "| {{Report Name}} | {{Module}} | {{Target Audience}} | {{Key Data Fields Included}} | {{Frequency}} |\n"
-    "| {{Report Name}} | {{Module}} | {{Target Audience}} | {{Key Data Fields Included}} | {{Frequency}} |\n"
-    "| {{Report Name}} | {{Module}} | {{Target Audience}} | {{Key Data Fields Included}} | {{Frequency}} |\n"
-    "| {{Report Name}} | {{Module}} | {{Target Audience}} | {{Key Data Fields Included}} | {{Frequency}} |\n\n"
-
-    "Final Rules:\n"
-    "- ONLY replace the text inside {{...}}. Do NOT remove the bold formatting like `* **Project Overview:**`.\n"
-    "- Ensure your replacements are deeply detailed, highly technical, and strictly relevant to {project_name} and {industry}.\n"
-    "- Return valid JSON only - escape newlines as \\n and internal quotes as \\\"\n"
-)
-=======
 
     "KEY 5 - database_design (Database Design Suggestions):\n"
     "## Core ERP Database Design Strategy\n"
@@ -503,5 +444,4 @@ SECTION_TEMPLATES = {
     )
 }
 
->>>>>>> 833f8ecf (New Update)
 
