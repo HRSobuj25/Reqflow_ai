@@ -53,6 +53,7 @@ try:
     # Test connection immediately
     with engine.connect() as conn:
         DB_AVAILABLE = True
+        
     SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 except Exception as e:
     print(f"[Database Warn] Could not establish connection to SQL Server: {str(e)}")
@@ -162,6 +163,19 @@ class UserSession(Base):
     user = relationship("User", back_populates="sessions")
 
 
+class AppSettings(Base):
+    """Application-wide settings configuration."""
+    __tablename__ = "AppSettings"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    setting_key = Column(String(100), unique=True, nullable=False, index=True)
+    setting_value = Column(Text, nullable=True)
+    updated_by = Column(Integer, ForeignKey("Users.id"), nullable=True)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+
+    updater = relationship("User", foreign_keys=[updated_by])
+
+
 # =====================================================================
 # Helper context and CRUD services
 # =====================================================================
@@ -214,6 +228,39 @@ def create_tables():
         return False
 
 
+def get_setting(setting_key, default_value=None):
+    if not DB_AVAILABLE: return default_value
+    with get_db() as db:
+        setting = db.query(AppSettings).filter(AppSettings.setting_key == setting_key).first()
+        if setting and setting.setting_value:
+            return setting.setting_value
+        return default_value
+
+def save_setting(setting_key, setting_value, user_id=None):
+    if not DB_AVAILABLE: return False
+    with get_db() as db:
+        setting = db.query(AppSettings).filter(AppSettings.setting_key == setting_key).first()
+        if setting:
+            setting.setting_value = str(setting_value) if setting_value is not None else None
+            setting.updated_by = user_id
+        else:
+            new_setting = AppSettings(
+                setting_key=setting_key,
+                setting_value=str(setting_value) if setting_value is not None else None,
+                updated_by=user_id
+            )
+            db.add(new_setting)
+        try:
+            db.commit()
+            return True
+        except Exception as e:
+            print(f"[Database Error] Failed to save setting {setting_key}: {str(e)}")
+            return False
+
+def update_setting(setting_key, setting_value, user_id=None):
+    return save_setting(setting_key, setting_value, user_id)
+
+
 def get_user_by_username(username):
     if not DB_AVAILABLE: return None
     with get_db() as db:
@@ -253,6 +300,24 @@ def create_user(full_name, username, email, password_hash, role_id):
             db.add(new_user)
             db.commit()
             return True, "User created successfully"
+        except Exception as e:
+            db.rollback()
+            return False, str(e)
+
+def update_user(user_id, full_name=None, email=None, password_hash=None):
+    if not DB_AVAILABLE: return False, "Database not available"
+    with get_db() as db:
+        try:
+            user = db.query(User).filter(User.id == user_id).first()
+            if not user:
+                return False, "User not found"
+            
+            if full_name: user.full_name = full_name
+            if email: user.email = email
+            if password_hash: user.password_hash = password_hash
+            
+            db.commit()
+            return True, "Profile updated successfully"
         except Exception as e:
             db.rollback()
             return False, str(e)

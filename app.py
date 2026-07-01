@@ -6,7 +6,6 @@ import json
 import io
 from datetime import datetime
 import plotly.express as px
-import prompts
 import gemini_service
 import database
 import docx_export
@@ -15,14 +14,15 @@ import excel_export
 import markdown_export
 import export_manager
 import auth
+import settings
 import importlib
-importlib.reload(prompts)
 importlib.reload(gemini_service)
 importlib.reload(database)
 importlib.reload(docx_export)
 importlib.reload(pdf_export)
 importlib.reload(excel_export)
 importlib.reload(markdown_export)
+importlib.reload(settings)
 importlib.reload(export_manager)
 importlib.reload(auth)
 
@@ -2972,6 +2972,10 @@ with st.sidebar:
         if st.button("👥 User Management", use_container_width=True, key="nav_btn_users"):
             st.session_state.page = "user_management"
             st.rerun()
+            
+        if st.button("⚙️ Settings", use_container_width=True, key="nav_btn_settings"):
+            st.session_state.page = "settings"
+            st.rerun()
 
     # ── Workspace section: only shown on Dashboard page ────────────────────────
     if st.session_state.page == "dashboard":
@@ -3083,6 +3087,10 @@ if st.session_state.page == "user_management":
 # dashboard code below from executing when on the history page.
 if st.session_state.page == "history":
     render_history_page()
+    st.stop()
+
+if st.session_state.page == "settings":
+    settings.render_settings_page()
     st.stop()
 
 # Main Application Frame Header
