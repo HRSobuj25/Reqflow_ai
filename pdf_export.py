@@ -75,7 +75,7 @@ class NumberedCanvas(canvas.Canvas):
             return
 
         self.saveState()
-        self.setFont("Helvetica", 8)
+        self.setFont("Times-Roman", 8)
         self.setFillColor(colors.HexColor(_HEX_BODY))
         
         # Draw header
@@ -250,7 +250,7 @@ def _get_pdf_styles() -> dict:
     styles.add(ParagraphStyle(
         name="CustomH1",
         parent=styles["Heading1"],
-        fontName="Helvetica-Bold",
+        fontName="Times-Bold",
         fontSize=18,
         leading=22,
         textColor=colors.HexColor(_HEX_DARK),
@@ -262,7 +262,7 @@ def _get_pdf_styles() -> dict:
     styles.add(ParagraphStyle(
         name="CustomH2",
         parent=styles["Heading2"],
-        fontName="Helvetica-Bold",
+        fontName="Times-Bold",
         fontSize=14,
         leading=18,
         textColor=colors.HexColor(_HEX_PURPLE),
@@ -274,7 +274,7 @@ def _get_pdf_styles() -> dict:
     styles.add(ParagraphStyle(
         name="CustomH3",
         parent=styles["Heading3"],
-        fontName="Helvetica-Bold",
+        fontName="Times-Bold",
         fontSize=11.5,
         leading=15,
         textColor=colors.HexColor(_HEX_MUTED),
@@ -286,7 +286,7 @@ def _get_pdf_styles() -> dict:
     styles.add(ParagraphStyle(
         name="CustomH4",
         parent=styles["Heading4"],
-        fontName="Helvetica-Bold",
+        fontName="Times-Bold",
         fontSize=10,
         leading=13,
         textColor=colors.HexColor(_HEX_BODY),
@@ -297,7 +297,7 @@ def _get_pdf_styles() -> dict:
 
     styles.add(ParagraphStyle(
         name="CustomBodyText",
-        fontName="Helvetica",
+        fontName="Times-Roman",
         fontSize=10,
         leading=14,
         textColor=colors.HexColor(_HEX_BODY),
@@ -306,7 +306,7 @@ def _get_pdf_styles() -> dict:
 
     styles.add(ParagraphStyle(
         name="TableHeader",
-        fontName="Helvetica-Bold",
+        fontName="Times-Bold",
         fontSize=9,
         leading=11,
         textColor=colors.HexColor(_HEX_TH_TEXT)
@@ -341,7 +341,7 @@ def _get_pdf_styles() -> dict:
     # Cover Page specific styles
     styles.add(ParagraphStyle(
         name="CoverBrand",
-        fontName="Helvetica-Bold",
+        fontName="Times-Bold",
         fontSize=11,
         leading=14,
         textColor=colors.HexColor(_HEX_PURPLE),
@@ -351,7 +351,7 @@ def _get_pdf_styles() -> dict:
 
     styles.add(ParagraphStyle(
         name="CoverSub",
-        fontName="Helvetica",
+        fontName="Times-Roman",
         fontSize=9,
         leading=12,
         textColor=colors.HexColor("#6B7280"),
@@ -361,7 +361,7 @@ def _get_pdf_styles() -> dict:
 
     styles.add(ParagraphStyle(
         name="CoverTitle",
-        fontName="Helvetica-Bold",
+        fontName="Times-Bold",
         fontSize=28,
         leading=34,
         textColor=colors.HexColor(_HEX_DARK),
@@ -371,7 +371,7 @@ def _get_pdf_styles() -> dict:
 
     styles.add(ParagraphStyle(
         name="CoverMeta",
-        fontName="Helvetica",
+        fontName="Times-Roman",
         fontSize=10.5,
         leading=15,
         textColor=colors.HexColor(_HEX_MUTED),
@@ -381,7 +381,7 @@ def _get_pdf_styles() -> dict:
 
     styles.add(ParagraphStyle(
         name="CoverTime",
-        fontName="Helvetica",
+        fontName="Times-Roman",
         fontSize=9,
         leading=12,
         textColor=colors.HexColor("#6B7280"),
@@ -391,7 +391,7 @@ def _get_pdf_styles() -> dict:
 
     styles.add(ParagraphStyle(
         name="CoverFoot",
-        fontName="Helvetica-Oblique",
+        fontName="Times-Italic",
         fontSize=8.5,
         leading=12,
         textColor=colors.HexColor("#6B7280"),
@@ -400,7 +400,7 @@ def _get_pdf_styles() -> dict:
 
     styles.add(ParagraphStyle(
         name="TOCItem",
-        fontName="Helvetica",
+        fontName="Times-Roman",
         fontSize=10,
         leading=14,
         textColor=colors.HexColor(_HEX_MUTED),

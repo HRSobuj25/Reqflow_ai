@@ -184,7 +184,7 @@ st.markdown(f"""
 
     /* Global reset */
     html, body, [data-testid="stAppViewContainer"], [data-testid="stApp"], .main, .block-container, section[data-testid="stMain"] {{
-        font-family: 'Outfit', sans-serif !important;
+        font-family: 'Cambria', Georgia, serif !important;
     }}
     html, body, [data-testid="stAppViewContainer"], [data-testid="stApp"], .main, .block-container, section[data-testid="stMain"] {{
         background-color: {bg_color} !important;

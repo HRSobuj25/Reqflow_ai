@@ -115,9 +115,9 @@ def _style_sheet(ws: openpyxl.worksheet.worksheet.Worksheet) -> None:
     thin_border = Border(left=thin_side, right=thin_side, top=thin_side, bottom=thin_side)
     
     # Formatting styles
-    font_normal = Font(name="Calibri", size=11, color="1F2937")
-    font_bold = Font(name="Calibri", size=11, bold=True, color="1F2937")
-    font_header = Font(name="Calibri", size=11, bold=True, color=_COLOR_TH_TEXT_HEX)
+    font_normal = Font(name="Cambria", size=11, color="1F2937")
+    font_bold = Font(name="Cambria", size=11, bold=True, color="1F2937")
+    font_header = Font(name="Cambria", size=11, bold=True, color=_COLOR_TH_TEXT_HEX)
     fill_header = PatternFill(start_color=_COLOR_TH_BG_HEX, end_color=_COLOR_TH_BG_HEX, fill_type="solid")
     
     # Iterate and format cells
@@ -131,7 +131,7 @@ def _style_sheet(ws: openpyxl.worksheet.worksheet.Worksheet) -> None:
             
             # Format custom section banners
             if isinstance(cell.value, str) and (cell.value.startswith("[") or cell.value.startswith("#")):
-                cell.font = Font(name="Calibri", size=14, bold=True, color="1E1B4B")
+                cell.font = Font(name="Cambria", size=14, bold=True, color="1E1B4B")
                 ws.row_dimensions[cell.row].height = 28
                 continue
                 
@@ -174,10 +174,10 @@ def _write_section_to_sheet(
     """Writes the markdown block content to the sheet, extracting tables to grids."""
     # Write Title Block
     ws.cell(row=1, column=1, value=title.upper())
-    ws.cell(row=1, column=1).font = Font(name="Calibri", size=16, bold=True, color="1E1B4B")
+    ws.cell(row=1, column=1).font = Font(name="Cambria", size=16, bold=True, color="1E1B4B")
     
     ws.cell(row=2, column=1, value=f"Project: {project_name}  |  Industry: {industry}  |  Generated: {timestamp}")
-    ws.cell(row=2, column=1).font = Font(name="Calibri", size=10, italic=True, color="4B5563")
+    ws.cell(row=2, column=1).font = Font(name="Cambria", size=10, italic=True, color="4B5563")
     
     ws.row_dimensions[1].height = 24
     ws.row_dimensions[2].height = 18
@@ -191,7 +191,7 @@ def _write_section_to_sheet(
     thin_border = Border(left=thin_side, right=thin_side, top=thin_side, bottom=thin_side)
     
     fill_th = PatternFill(start_color=_COLOR_TH_BG_HEX, end_color=_COLOR_TH_BG_HEX, fill_type="solid")
-    font_th = Font(name="Calibri", size=11, bold=True, color=_COLOR_TH_TEXT_HEX)
+    font_th = Font(name="Cambria", size=11, bold=True, color=_COLOR_TH_TEXT_HEX)
     
     # Track which lines were tables so we skip printing them as plain lines
     table_lines_mask = [False] * len(lines)
@@ -248,7 +248,7 @@ def _write_section_to_sheet(
                 if line.startswith("#"):
                     level = len(line) - len(line.lstrip("#"))
                     cell.value = line.replace("#", "").strip()
-                    cell.font = Font(name="Calibri", size=13 if level > 1 else 14, bold=True, color="8B5CF6" if level > 1 else "1E1B4B")
+                    cell.font = Font(name="Cambria", size=13 if level > 1 else 14, bold=True, color="8B5CF6" if level > 1 else "1E1B4B")
                     ws.row_dimensions[current_row].height = 22
                 else:
                     ws.row_dimensions[current_row].height = 18
@@ -307,7 +307,7 @@ def build_complete_suite_excel(
     ws_cover.views.sheetView[0].showGridLines = True
     
     ws_cover.cell(row=1, column=1, value="ReqFlow AI Enterprise Requirement Suite")
-    ws_cover.cell(row=1, column=1).font = Font(name="Calibri", size=16, bold=True, color="1E1B4B")
+    ws_cover.cell(row=1, column=1).font = Font(name="Cambria", size=16, bold=True, color="1E1B4B")
     
     meta_rows = [
         ("Project Name", project_name),
@@ -320,7 +320,7 @@ def build_complete_suite_excel(
     thin_side = Side(border_style="thin", color=_COLOR_BORDER_HEX)
     thin_border = Border(left=thin_side, right=thin_side, top=thin_side, bottom=thin_side)
     fill_lbl = PatternFill(start_color=_COLOR_TH_BG_HEX, end_color=_COLOR_TH_BG_HEX, fill_type="solid")
-    font_lbl = Font(name="Calibri", size=11, bold=True, color=_COLOR_TH_TEXT_HEX)
+    font_lbl = Font(name="Cambria", size=11, bold=True, color=_COLOR_TH_TEXT_HEX)
     
     curr_r = 3
     for lbl, val in meta_rows:
@@ -336,7 +336,7 @@ def build_complete_suite_excel(
     # Table of contents index
     curr_r += 2
     ws_cover.cell(row=curr_r, column=1, value="DOCUMENT SPECIFICATIONS INDEX")
-    ws_cover.cell(row=curr_r, column=1).font = Font(name="Calibri", size=12, bold=True, color="8B5CF6")
+    ws_cover.cell(row=curr_r, column=1).font = Font(name="Cambria", size=12, bold=True, color="8B5CF6")
     curr_r += 1
     
     toc_idx = 1

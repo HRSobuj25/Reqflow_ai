@@ -329,7 +329,7 @@ def _create_base_doc() -> Document:
     sec.bottom_margin  = Inches(1.0)
 
     normal = doc.styles["Normal"]
-    normal.font.name      = "Calibri"
+    normal.font.name      = "Cambria"
     normal.font.size      = Pt(10.5)
     normal.font.color.rgb = _CLR_BODY
     return doc
@@ -349,7 +349,7 @@ def _add_cover_page(
     b = doc.add_paragraph()
     b.alignment = WD_ALIGN_PARAGRAPH.CENTER
     br = b.add_run("ReqFlow AI  |  ERP Requirement Engine")
-    br.font.name = "Calibri"
+    br.font.name = "Cambria"
     br.font.size = Pt(10)
     br.font.bold = True
     br.font.color.rgb = _CLR_PURPLE
@@ -359,7 +359,7 @@ def _add_cover_page(
     dt = doc.add_paragraph()
     dt.alignment = WD_ALIGN_PARAGRAPH.CENTER
     dr = dt.add_run(document_type.upper())
-    dr.font.name = "Calibri"
+    dr.font.name = "Cambria"
     dr.font.size = Pt(9)
     dr.font.bold = True
     dr.font.color.rgb = _CLR_DIM
@@ -370,7 +370,7 @@ def _add_cover_page(
     t.alignment = WD_ALIGN_PARAGRAPH.CENTER
     _set_para_border_bottom(t)
     tr = t.add_run(project_name)
-    tr.font.name = "Calibri"
+    tr.font.name = "Cambria"
     tr.font.size = Pt(32)
     tr.font.bold = True
     tr.font.color.rgb = _CLR_DARK
@@ -380,7 +380,7 @@ def _add_cover_page(
     ind = doc.add_paragraph()
     ind.alignment = WD_ALIGN_PARAGRAPH.CENTER
     ir = ind.add_run(f"Industry Domain: {industry}")
-    ir.font.name = "Calibri"
+    ir.font.name = "Cambria"
     ir.font.size = Pt(11)
     ir.font.italic = True
     ir.font.color.rgb = _CLR_MUTED
@@ -390,7 +390,7 @@ def _add_cover_page(
     ts = doc.add_paragraph()
     ts.alignment = WD_ALIGN_PARAGRAPH.CENTER
     tsr = ts.add_run(f"Generated: {timestamp}")
-    tsr.font.name = "Calibri"
+    tsr.font.name = "Cambria"
     tsr.font.size = Pt(9.5)
     tsr.font.color.rgb = _CLR_DIM
     ts.paragraph_format.space_after = Pt(30)
@@ -402,7 +402,7 @@ def _add_cover_page(
         "CONFIDENTIAL — For internal use only. "
         "Generated automatically by ReqFlow AI Enterprise."
     )
-    cfr.font.name = "Calibri"
+    cfr.font.name = "Cambria"
     cfr.font.size = Pt(8.5)
     cfr.font.italic = True
     cfr.font.color.rgb = _CLR_DIM
